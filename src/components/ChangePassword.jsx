@@ -66,7 +66,7 @@ const ChangePassword = () => {
               {/* Old Password Field */}
               <div>
                 <label className="block text-base font-medium mb-1 text-[#102a43]">Old Password</label>
-                <div className="relative w-[312px]">
+                <div className="relative w-full sm:w-[312px]">
                   <Field
                     name="oldPassword"
                     type={showOldPassword ? 'text' : 'password'}
@@ -86,7 +86,7 @@ const ChangePassword = () => {
               {/* Password Field */}
               <div>
                 <label className="block text-base font-medium mb-1 text-[#102a43]">Password</label>
-                <div className="relative w-[312px]">
+                <div className="relative w-full sm:w-[312px]">
                   <Field
                     name="newPassword"
                     type={showNewPassword ? 'text' : 'password'}
@@ -106,7 +106,7 @@ const ChangePassword = () => {
               {/* Confirm Password Field */}
               <div>
                 <label className="block text-base font-medium mb-1 text-[#102a43]">Confirm Password</label>
-                <div className="relative w-[312px]">
+                <div className="relative w-full sm:w-[312px]">
                   <Field
                     name="confirmPassword"
                     type={showConfirm ? 'text' : 'password'}

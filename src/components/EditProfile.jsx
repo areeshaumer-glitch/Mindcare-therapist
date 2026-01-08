@@ -3,7 +3,7 @@ import images from '../assets/Images';
 import { Method, callApi } from '../netwrok/NetworkManager';
 import { api } from '../netwrok/Environment';
 
-const EditProfile = ({ profile }) => {
+const EditProfile = ({ profile, onProfileUpdate }) => {
   const [profileData, setProfileData] = useState(profile);
   const [image, setImage] = useState(null); // Preview or S3 URL
   const [isUploading, setIsUploading] = useState(false);
@@ -127,6 +127,9 @@ const EditProfile = ({ profile }) => {
         // Update local state to reflect changes immediately
         if (image) {
           setProfileData(prev => ({ ...prev, profileImage: image }));
+        }
+        if (onProfileUpdate) {
+          onProfileUpdate();
         }
       },
       onError: (err) => {

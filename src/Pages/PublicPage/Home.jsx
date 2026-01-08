@@ -12,7 +12,6 @@ const sidebarItems = [
   { label: 'Dashboard', icon: images.dash },
   { label: 'Appointments', icon: images.workout },
   { label: 'Track Attendance', icon: images.track },
-  { label: 'Session History', icon: images.track },
 
   { label: 'Sign Out', icon: images.Signout, isLast: true },
 ];
@@ -25,7 +24,6 @@ const getSelectedFromPathname = (pathname) => {
   }
   if (path.includes('/home/appointments')) return 'Appointments';
   if (path.includes('/home/track-attendance')) return 'Track Attendance';
-  if (path.includes('/home/session-history')) return 'Session History';
   if (path.includes('/home/my-profile')) return 'My Profile';
 
   return 'Dashboard';
@@ -72,9 +70,6 @@ const Home = () => {
         break;
       case 'Track Attendance':
         navigate('track-attendance');
-        break;
-      case 'Session History':
-        navigate('session-history');
         break;
 
       case 'My Profile':
@@ -141,7 +136,7 @@ const Home = () => {
                   <img
                     src={item.icon}
                     alt={item.label}
-                    className={`w-5 h-5 ${selected === item.label ? 'filter brightness-0 invert' : ''}`}
+                    className={`w-4 h-5 ${selected === item.label ? 'filter brightness-0 invert' : ''}`}
                   />
                   <span>{item.label}</span>
                 </button>

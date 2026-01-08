@@ -18,5 +18,5 @@ export const api = {
   workouts: 'workouts',
   s3Upload: 's3/upload',
   availability: 'therapist/profile/availability',
-  appointmentsMe: 'appointments/me',
+  appointmentsMe: 'appointments/therapist/mine',
 }

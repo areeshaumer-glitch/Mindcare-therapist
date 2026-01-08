@@ -10,8 +10,7 @@ import {
   TrackAttendence,
   Home,
   MyProfile,
-  Appointment,
-  SessionHistory
+  Appointment
 } from "./Pages/PagesList";
 
 export default function App() {
@@ -33,8 +32,6 @@ export default function App() {
             <Route path="dashboard" element={<Dashboard />} />
              <Route path="my-profile" element={<MyProfile />} />
           <Route path="appointments" element={<Appointment />} />
-          <Route path="session-history" element={<SessionHistory />} />
-          <Route path="session history" element={<Navigate to="../session-history" replace />} />
           <Route path="track-attendance" element={<TrackAttendence />} />
         </Route>
       </Routes>

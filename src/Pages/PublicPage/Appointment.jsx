@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { ArrowLeft, Calendar, ChevronDown, Clock, MapPin, X } from 'lucide-react';
 import { Method, callApi } from '../../netwrok/NetworkManager';
 import { api } from '../../netwrok/Environment';
@@ -6,6 +6,7 @@ import { api } from '../../netwrok/Environment';
 const Appointment = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const calendarRef = useRef(null);
   const [error, setError] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isDateSelected, setIsDateSelected] = useState(false);
@@ -16,7 +17,19 @@ const Appointment = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [apiError, setApiError] = useState('');
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setShowCalendar(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const endPoint = useMemo(() => {
     const params = new URLSearchParams();
@@ -34,7 +47,6 @@ const Appointment = () => {
   useEffect(() => {
     let isActive = true;
     setIsLoading(true);
-    setApiError('');
     setAppointments([]);
 
     void callApi({
@@ -53,7 +65,6 @@ const Appointment = () => {
       },
       onError: (err) => {
         if (!isActive) return;
-        setApiError(err?.message || 'Failed to load appointments.');
         setAppointments([]);
         setIsLoading(false);
       },
@@ -167,7 +178,7 @@ const Appointment = () => {
 
     return (
       <>
-        <div className="min-h-screen">
+        <div className="h-full">
           <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
               <button
@@ -313,10 +324,10 @@ const Appointment = () => {
 
   return (
     <>
-      <div className="min-h-screen">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-start justify-between gap-4 mb-6">
-            <div>
+      <div className="h-full">
+        <div className="max-w-6xl mx-auto px-4 md:px-0">
+          <div className="flex flex-col md:flex-row items-start justify-between gap-4 mb-6">
+            <div className="w-full md:w-auto">
               <h1 className="text-xl font-semibold text-gray-900">My Appointments</h1>
               <div className="flex items-center gap-3 mt-4">
                 <button
@@ -338,11 +349,11 @@ const Appointment = () => {
               </div>
             </div>
 
-            <div className="relative">
+            <div className="relative w-full md:w-auto" ref={calendarRef}>
               <button
                 type="button"
                 onClick={() => setShowCalendar(!showCalendar)}
-                className="w-56 flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors"
+                className="w-full md:w-56 flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors"
               >
                 <span className="text-sm text-gray-700">
                   {isDateSelected ? formatDate(selectedDate) : 'Select Date'}
@@ -386,12 +397,12 @@ const Appointment = () => {
                         type="button"
                         key={index}
                         onClick={() => handleDateSelect(day)}
-                        className={`h-8 text-sm rounded hover:bg-teal-100 transition-colors ${day === selectedDate.getDate()
-                            ? 'bg-teal-600 text-white hover:bg-teal-700'
-                            : day
-                              ? 'text-gray-700 hover:bg-gray-100'
-                              : ''
-                          }`}
+                        className={`h-8 text-sm rounded transition-colors ${day === selectedDate.getDate()
+                          ? 'bg-teal-600 text-white hover:bg-teal-700'
+                          : day
+                            ? 'text-gray-700 hover:bg-teal-100'
+                            : 'cursor-default'
+                        }`}
                         disabled={!day}
                       >
                         {day}
@@ -402,7 +413,6 @@ const Appointment = () => {
               )}
             </div>
           </div>
-          {apiError ? <div className="text-red-500 text-sm mb-6">{apiError}</div> : null}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {isLoading ? <div className="text-gray-600">Loading...</div> : null}
@@ -412,16 +422,16 @@ const Appointment = () => {
             {!isLoading && appointments.map((appointment, idx) => {
               // Extract fields from new appointment object structure
               const user = appointment.user || {};
-              const title = appointment.name || user.name || user.fullName || 'Student Name';
-              const image =
-                sanitizeImageUrl(appointment.profileImage) ||
-                sanitizeImageUrl(user.profileImage) ||
-                user.avatar ||
-                'https://i.pravatar.cc/120';
-              const key = appointment._id || appointment.id || idx;
+              const title = user.name || user.fullName || user.email || 'Client';
+              const image = user.profileImage
+                ? sanitizeImageUrl(user.profileImage)
+                : 'https://i.pravatar.cc/120';
+              const key = appointment._id || idx;
 
-              const dateStr = appointment.date;
-              const timeStr = appointment.time;
+              const dateStr = appointment.appointmentDate;
+              const timeStr = (appointment.startTime && appointment.endTime)
+                ? `${appointment.startTime} - ${appointment.endTime}`
+                : (appointment.startTime || '');
               const dateObj = dateStr ? new Date(dateStr) : null;
 
               // Filter logic if date is selected

@@ -1,18 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, ChevronDown } from 'lucide-react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Method, callApi } from '../../netwrok/NetworkManager';
 import { api } from '../../netwrok/Environment';
-
 // Modal Component
-
-
 const TrackAttendence = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
+  const calendarRef = useRef(null);
   const [entries, setEntries] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', {
       month: 'long',
@@ -51,6 +50,19 @@ const TrackAttendence = () => {
   }, [range]);
 
   useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setShowCalendar(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
     let isActive = true;
     setIsLoading(true);
     setApiError('');
@@ -61,6 +73,7 @@ const TrackAttendence = () => {
       onSuccess: (response) => {
         if (!isActive) return;
         setEntries(Array.isArray(response?.data) ? response.data : []);
+        setCurrentPage(1);
         setIsLoading(false);
       },
       onError: (err) => {
@@ -75,6 +88,10 @@ const TrackAttendence = () => {
       isActive = false;
     };
   }, [endPoint]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
 
   const generateCalendar = () => {
     const year = selectedDate.getFullYear();
@@ -113,13 +130,22 @@ const TrackAttendence = () => {
     setSelectedDate(newDate);
   };
 
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentEntries = entries.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(entries.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
 
 
 
   return (
     <> 
    
-      <div className=" bg-white p-4 rounded-2xl">
+      <div className="bg-white p-4 rounded-2xl min-h-[calc(100vh-180px)]">
         
         <div className="w-full mx-auto">
           {/* Header */}
@@ -127,7 +153,7 @@ const TrackAttendence = () => {
             <h1 className="text-2xl md:text- font-semibold text-teal-600">Track Attendance </h1>
             
             {/* Date Selector */}
-            <div className="relative">
+            <div className="relative" ref={calendarRef}>
               <button
                 onClick={() => setShowCalendar(!showCalendar)}
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
@@ -169,19 +195,21 @@ const TrackAttendence = () => {
                   </div>
                   
                   <div className="grid grid-cols-7 gap-1">
-                    {generateCalendar().map((day, index) => (
+                    {generateCalendar().map((day, index) => {
+                      const isFuture = day && new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day) > new Date();
+                      return (
                       <button
                         key={index}
-                        onClick={() => handleDateSelect(day)}
-                        className={`h-8 text-sm rounded hover:bg-teal-100 transition-colors ${
+                        onClick={() => !isFuture && handleDateSelect(day)}
+                        className={`h-8 text-sm rounded transition-colors ${
                           day === selectedDate.getDate() ? 'bg-teal-600 text-white hover:bg-teal-700' : 
-                          day ? 'text-gray-700 hover:bg-gray-100' : ''
-                        }`}
-                        disabled={!day}
+                          day && !isFuture ? 'text-gray-700 hover:bg-teal-100' : ''
+                        } ${isFuture ? 'text-gray-300 cursor-default' : ''}`}
+                        disabled={!day || isFuture}
                       >
                         {day}
                       </button>
-                    ))}
+                    )})}
                   </div>
                 </div>
               )}
@@ -193,50 +221,90 @@ const TrackAttendence = () => {
 
          
            {/* Attendance Table */}
-        <div className="bg-white ">
-          {/* Table Header */}
-          <div className="bg-teal-600 text-white rounded-xl">
-            <div className="grid grid-cols-4 gap-4 p-4 font-semibold text-lg ">
-              <div className="text-left">Name</div>
-              <div className="text-center">Absent</div>
-              <div className="text-center">Attend From Gym</div>
-              <div className="text-center">Attend from Home</div>
-            </div>
-          </div>
-
-          {/* Table Body */}
-          <div className="divide-y divide-gray-100">
-            {!isLoading && entries.length === 0 ? (
-              <div className="p-6 text-gray-600">No attendance data found.</div>
-            ) : null}
-            {entries.map((row, idx) => {
-              const key = row?.userId || row?._id || row?.id || `${row?.name || 'row'}-${idx}`;
-              const stats = row?.stats || {};
-              return (
-              <div key={key} className="grid grid-cols-4 gap-4 p-6 items-center ">
-                {/* Name */}
-                <div className="text-left">
-                  <p className="font-medium text-gray-700 text-lg">{row?.name || '-'}</p>
-                </div>
-
-                {/* Absent */}
-                <div className="text-center">
-                  <span className="text-gray-600 text-lg">{formatPercent(stats?.percentAbsent)}</span>
-                </div>
-
-                {/* Attend From Gym */}
-                <div className="text-center">
-                  <span className="text-gray-600 text-lg">{formatPercent(stats?.percentGym)}</span>
-                </div>
-
-                {/* Attend from Home */}
-                <div className="text-center">
-                  <span className="text-gray-600 text-lg">{formatPercent(stats?.percentHome)}</span>
+        <div className="bg-white overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-[800px]">
+              {/* Table Header */}
+              <div className="bg-teal-600 text-white rounded-xl">
+                <div className="grid grid-cols-4 gap-4 p-4 font-semibold text-lg ">
+                  <div className="text-left">Name</div>
+                  <div className="text-center">Absent</div>
+                  <div className="text-center">Attend From Gym</div>
+                  <div className="text-center">Attend from Home</div>
                 </div>
               </div>
-            )})}
+
+              {/* Table Body */}
+              <div className="divide-y divide-gray-100">
+                {!isLoading && entries.length === 0 ? (
+                  <div className="p-6 text-gray-600">No attendance data found.</div>
+                ) : null}
+                {currentEntries.map((row, idx) => {
+                  const key = row?.userId || row?._id || row?.id || `${row?.name || 'row'}-${idx}`;
+                  const stats = row?.stats || {};
+                  return (
+                  <div key={key} className="grid grid-cols-4 gap-4 p-6 items-center ">
+                    {/* Name */}
+                    <div className="text-left">
+                      <p className="font-medium text-gray-700 text-lg">{row?.name || '-'}</p>
+                    </div>
+
+                    {/* Absent */}
+                    <div className="text-center">
+                      <span className="text-gray-600 text-lg">{formatPercent(stats?.percentAbsent)}</span>
+                    </div>
+
+                    {/* Attend From Gym */}
+                    <div className="text-center">
+                      <span className="text-gray-600 text-lg">{formatPercent(stats?.percentGym)}</span>
+                    </div>
+
+                    {/* Attend from Home */}
+                    <div className="text-center">
+                      <span className="text-gray-600 text-lg">{formatPercent(stats?.percentHome)}</span>
+                    </div>
+                  </div>
+                )})}
+                {/* Fill empty rows to maintain height */}
+                {Array.from({ length: Math.max(0, itemsPerPage - currentEntries.length) }).map((_, idx) => (
+                   <div key={`empty-${idx}`} className="grid grid-cols-4 gap-4 p-6 items-center invisible">
+                      <div className="text-left"><p className="font-medium text-lg">-</p></div>
+                      <div className="text-center"><span className="text-lg">-</span></div>
+                      <div className="text-center"><span className="text-lg">-</span></div>
+                      <div className="text-center"><span className="text-lg">-</span></div>
+                   </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Pagination */}
+        {!isLoading && entries.length > itemsPerPage && (
+            <div className="flex items-center justify-end gap-3 mt-0">
+              <button
+                onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-600" />
+              </button>
+              
+              <span className="text-sm font-medium text-gray-700">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next page"
+              >
+                <ChevronRight className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+          )}
 
         </div>
       </div>

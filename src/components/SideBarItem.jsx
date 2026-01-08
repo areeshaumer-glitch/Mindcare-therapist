@@ -12,7 +12,7 @@ const SidebarItem = ({ icon, label, active, onClick, isLast = false }) => (
       <img
         src={icon}
         alt={label}
-       className={`${isLast ? "w-12 h-10 lg:w-8 lg:h-6" : "w-5 h-5"} ${active ? "filter brightness-0 invert" : ""}`}
+       className={`${isLast ? "w-10 h-9 lg:w-6 lg:h-6" : "w-4 h-5"} ${active ? "filter brightness-0 invert" : ""}`}
 
       />
       <span className="hidden sm:inline">{label}</span>

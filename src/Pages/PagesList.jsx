@@ -4,7 +4,6 @@ import CreatePasswordPage from './AuthPages/CreatePasswordPage';
 import OTPPage from './AuthPages/OTPPage';
 import ProfileCreation from './AuthPages/ProfileCreation';
 import Appointment from './PublicPage/Appointment';
-import SessionHistory from './PublicPage/SessionHistory';
 import TrackAttendence from './PublicPage/TrackAttendence';
 import MyProfile from './PublicPage/MyProfile';
 import Home from './PublicPage/Home';
@@ -17,7 +16,6 @@ export {
   OTPPage,
   ProfileCreation,
   Appointment,
-  SessionHistory,
   TrackAttendence,
   MyProfile,
   Home,

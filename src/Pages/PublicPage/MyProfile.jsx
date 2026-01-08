@@ -13,6 +13,10 @@ const MyProfile = () => {
   const [selectedSection, setSelectedSection] = useState('editProfile');
   const { therapistProfile } = useOutletContext() || {};
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [selectedSection]);
+
   const renderContent = () => {
     switch (selectedSection) {
       case 'editProfile':
@@ -55,7 +59,7 @@ const MyProfile = () => {
         />
         <MenuItem
           label="Time Slot"
-          subtitle="Lorem ipsum dolor sit"
+          subtitle="Update Appointment Time"
           active={selectedSection === 'timeSlot'}
           onClick={() => setSelectedSection('timeSlot')}
         />
@@ -73,7 +77,7 @@ const MyProfile = () => {
           onClick={() => setSelectedSection('privacy')}
         />
       </div>
-      <div className="w-full md:flex-1 bg-white rounded-xl shadow-md p-3 sm:p-4 md:p-6 self-start mx-4 md:mx-0 max-[450px]:mx-2 max-[450px]:p-3">
+      <div className="w-full md:flex-1 bg-white rounded-xl shadow-md p-3 sm:p-4 md:p-6 self-start mx-4 md:mx-0 max-[450px]:mx-2 max-[450px]:p-3 min-h-[460px]">
         {renderContent()}
       </div>
     </div>
@@ -396,7 +400,7 @@ const TimeSlotPanel = ({ availability }) => {
             type="button"
             onClick={handleUpdate}
             disabled={isUpdating}
-            className={`bg-teal-700 text-white font-medium px-14 py-3 rounded-xl hover:bg-teal-800 transition-colors ${isUpdating ? 'opacity-70 cursor-not-allowed' : ''}`}
+            className={`bg-teal-700 text-white font-medium w-[312px] h-[50px] rounded-[12px] hover:bg-teal-800 transition-colors flex items-center justify-center ${isUpdating ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
             {isUpdating ? 'Updating...' : 'Update'}
           </button>

@@ -25,8 +25,12 @@ const TopBar = ({ onClick, onMenuClick, profile }) => {
     profile?.user?.name ||
     profile?.user?.fullName ||
     'Therapist';
-  const firstName = String(displayName).trim().split(' ')[0] || 'Therapist';
-  const role = profile?.user?.role || profile?.role || 'Therapist';
+  
+  let firstName = String(displayName).trim().split(' ')[0] || 'Therapist';
+  firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
+  let role = profile?.user?.role || profile?.role || 'Therapist';
+  role = String(role).charAt(0).toUpperCase() + String(role).slice(1);
   const avatar =
     profile?.profileImage ||
     profile?.user?.profileImage ||

@@ -114,7 +114,7 @@ const Dashboard = () => {
     const displayTime = selectedAppointment.time || '';
 
     return (
-      <div className="min-h-screen font-nunito">
+      <div className="h-full font-nunito">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-lg  p-6 md:p-8">
             {/* Back Button */}
@@ -217,7 +217,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen ">
+    <div className="h-full ">
 
       <div className="max-w-6xl mx-auto">
         {/* Statistics Section */}
