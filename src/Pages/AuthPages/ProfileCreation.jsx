@@ -1,11 +1,12 @@
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
+import { DEFAULT_AVATAR } from '../../assets/defaultAvatar';
 import AuthLayout from '../../layout/AuthLayout';
 import PrimaryButton from '../../components/PrimaryButton';
 import images from '../../assets/Images';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, X } from 'lucide-react';
+import { Camera, X } from 'lucide-react';
 import TimeSlot from '../../components/TimeSlot';
 import { Method, callApi } from '../../netwrok/NetworkManager';
 import { api } from '../../netwrok/Environment';
@@ -59,7 +60,7 @@ const ProfileCreation = () => {
           const url = response?.data?.url ?? response?.data ?? response?.url;
           if (url) {
             setImage(url);
-            window.showToast?.("Image uploaded successfully", "success");
+            // window.showToast?.("Image uploaded successfully", "success");
           } else {
             console.warn("S3 Upload response missing URL");
           }
@@ -125,15 +126,10 @@ const ProfileCreation = () => {
         onClick={() => setIsModalOpen(false)}
       >
         <div
-          className="bg-white rounded-lg w-[90%] max-w-4xl max-h-[90vh] overflow-y-auto shadow-lg relative"
+          className="bg-white rounded-[20px] w-[95%] max-w-6xl max-h-[90vh] overflow-y-auto shadow-xl relative [&::-webkit-scrollbar]:hidden"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button
-            onClick={onClose}
-            className="absolute top-2 right-2 p-2 hover:bg-gray-100 rounded-full"
-          >
-            <X className="w-4 h-4" />
-          </button>
           {children}
         </div>
       </div>
@@ -141,7 +137,7 @@ const ProfileCreation = () => {
   };
   return (
     <div className='min-height flex'>
-      <AuthLayout title="Profile Creation" description="Complete your profile to start receiving appointments.">
+      <AuthLayout title="Profile Creation" centerContent={false}>
         <Formik
           initialValues={{ name: '', location: '', bio: '', specializations: [] }}
           validationSchema={ProfileSchema}
@@ -155,18 +151,25 @@ const ProfileCreation = () => {
           }}
         >
           {({ setFieldValue, errors, touched }) => (
-            <Form className="space-y-1 h-min">
+            <Form className="space-y-4 w-full max-w-md mx-auto">
 
 
               {/* Profile Image Upload */}
-              <div className="flex justify-center items-center ">
+              <div className="flex justify-center items-center mb-6">
                 <label htmlFor="imageUpload" className="cursor-pointer relative">
-                  <img
-                    src={image || images.camera}
-                    alt="Upload"
-                    className={`w-[120px] h-[120px] rounded-full ${image ? 'border-2 border-teal-700 object-fill' : 'object-contain'
-                      }`}
-                  />
+                  <div className={`w-[120px] h-[120px] rounded-full flex items-center justify-center overflow-hidden ${image ? '' : 'bg-[#D9D9D9]'}`}>
+                    {image ? (
+                      <img
+                        src={image}
+                        alt="Upload"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }}
+                      />
+                    ) : (
+                      <Camera className="w-8 h-8 text-black opacity-70" />
+                    )}
+                  </div>
+
                   {isUploading && (
                     <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center">
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -186,56 +189,55 @@ const ProfileCreation = () => {
               <Field
                 name="name"
                 type="text"
-                placeholder="Add Your Name"
-                className={`w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.name && touched.name ? 'border-red-500' : 'border-[#A1B0CC]'
+                placeholder="Add your Name"
+                className={`w-full px-4 py-3 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 ${errors.name && touched.name ? 'border-red-500' : 'border-[#A1B0CC]'
                   }`}
               />
 
               {/* Location */}
-              <div className="relative w-full max-w-md">
+              <div className="relative w-full">
                 <Field
                   name="location"
                   type="text"
-                  placeholder="Location"
-                  className={`w-full px-4 py-3 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.location && touched.location ? 'border-red-500' : 'border-[#A1B0CC]'
+                  placeholder="Add your Location"
+                  className={`w-full px-4 py-3 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 ${errors.location && touched.location ? 'border-red-500' : 'border-[#A1B0CC]'
                     }`}
                 />
-                <MapPin
-                  size={20}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
-                />
               </div>
-              {/* Bio moved to top */}
+
+              {/* Bio */}
               <Field
                 as="textarea"
                 name="bio"
                 placeholder="Bio"
-                className={`w-full px-4 py-3 h-32 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none ${errors.bio && touched.bio ? 'border-red-500' : 'border-[#A1B0CC]'
+                className={`w-full px-4 py-3 h-32 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none text-gray-700 placeholder-gray-400 ${errors.bio && touched.bio ? 'border-red-500' : 'border-[#A1B0CC]'
                   }`}
               />
-              {/* Specializations */}
-              <h6 className="text-sm text-gray-500 mb-4 ">Specialization</h6>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {specializations.map((item) => {
-                  const isSelected = selectedSpecializations.includes(item);
-                  return (
-                    <button
-                      type="button"
-                      key={item}
-                      onClick={() => toggleSpecialization(item, setFieldValue)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium mb-2 ${isSelected ? 'bg-teal-600 text-white' : 'bg-gray-300 text-gray-700'}`}
 
-                    >
-                      {item}
-                    </button>
-                  );
-                })}
+              {/* Specializations */}
+              <div className="pt-2">
+                <h6 className="text-base text-gray-500 mb-3">Specialization</h6>
+                <div className="grid grid-cols-4 gap-2">
+                  {specializations.map((item) => {
+                    const isSelected = selectedSpecializations.includes(item);
+                    return (
+                      <button
+                        type="button"
+                        key={item}
+                        onClick={() => toggleSpecialization(item, setFieldValue)}
+                        className={`w-full py-2 rounded-[8px] text-sm font-medium transition-colors flex items-center justify-center ${isSelected ? 'bg-teal-700 text-white' : 'bg-[#D9D9D9] text-white hover:bg-gray-400'}`}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+                <ErrorMessage name="specializations" component="div" className="text-red-500 text-sm mt-1" />
               </div>
-              <ErrorMessage name="specializations" component="div" className="text-red-500 text-sm mt-1" />
 
               {/* Submit Button */}
-              <div className="flex justify-end items-center mt-4">
-                <PrimaryButton type="submit">NEXT</PrimaryButton>
+              <div className="pt-6">
+                <PrimaryButton type="submit" className="rounded-[12px] py-3.5">NEXT</PrimaryButton>
               </div>
             </Form>
           )}

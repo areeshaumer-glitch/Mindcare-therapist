@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { Plus, RotateCcw } from "lucide-react";
 import images from "../assets/Images";
+import { DEFAULT_AVATAR } from "../assets/defaultAvatar";
 
 export function WorkoutDetailsModal({ showModal, setShowModal, workoutData: _workoutData, onComplete }) {
   const [selectedDays, setSelectedDays] = useState([]);
   const initialReps = useMemo(() => ["", "", ""], []);
   const exerciseThumbnails = useMemo(
-    () => [images.thumb1, images.thumb2, images.thumb3],
+    () => [DEFAULT_AVATAR, DEFAULT_AVATAR, DEFAULT_AVATAR],
     []
   );
   const gymOptions = useMemo(
@@ -185,6 +186,7 @@ export function WorkoutDetailsModal({ showModal, setShowModal, workoutData: _wor
                           key={`${exercise.id}-${idx}`}
                           src={src}
                           alt=""
+                          onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }}
                           className="w-10 h-10 rounded object-cover border border-gray-200"
                         />
                       ))}

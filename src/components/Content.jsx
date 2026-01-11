@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import images from "../assets/Images";
 import VideoCard from "./VideoCard";
 import Workout from "./Workout";
 import TrackAttendence from "./TrackAttendence";

@@ -37,8 +37,12 @@ const Home = () => {
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const logout = useAuthStore((s) => s.logout);
   const [therapistProfile, setTherapistProfile] = useState(null);
+  const [navigationEvent, setNavigationEvent] = useState(null);
 
-  useEffect(() => {
+  const fetchProfile = (updatedData = null) => {
+    if (updatedData) {
+      setTherapistProfile((prev) => ({ ...prev, ...updatedData }));
+    }
     callApi({
       method: Method.GET,
       endPoint: api.therapistProfileMe,
@@ -49,9 +53,20 @@ const Home = () => {
         setTherapistProfile(me);
       },
       onError: () => {
-        setTherapistProfile(null);
+        // If the optimistic update was wrong or the fetch fails, we might want to handle it,
+        // but typically the previous state or null is fine. 
+        // If we want to revert, we'd need more complex logic. 
+        // For now, if fetch fails, we just set null or keep optimistic state? 
+        // The original code set it to null on error.
+        if (!updatedData) {
+           setTherapistProfile(null);
+        }
       },
     });
+  };
+
+  useEffect(() => {
+    fetchProfile();
   }, []);
 
   useEffect(() => {
@@ -61,6 +76,7 @@ const Home = () => {
 
   const handleClick = async (label) => {
     setSelected(label);
+    setNavigationEvent({ label, timestamp: Date.now() });
     switch (label) {
       case 'Dashboard':
         navigate('dashboard'); // relative to /Dashboard
@@ -175,7 +191,7 @@ const Home = () => {
           }}
         />
         <div className="mt-6">
-          <Outlet context={{ therapistProfile }} />
+          <Outlet context={{ therapistProfile, refreshProfile: fetchProfile, navigationEvent }} />
         </div>
       </main>
     </div>

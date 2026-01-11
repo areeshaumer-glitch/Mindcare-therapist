@@ -1,7 +1,7 @@
 import React from 'react'
 import images from '../assets/Images';
 
-const AuthLayout = ({ title = "Welcome", description, children }) => {
+const AuthLayout = ({ title = "Welcome", description, children, centerContent = true }) => {
   return (
     <div className="flex flex-col lg:flex-row h-screen w-full">
       {/* Left Section */}
@@ -27,7 +27,7 @@ const AuthLayout = ({ title = "Welcome", description, children }) => {
       </div>
 
       {/* Right Section */}
-      <div className="w-full lg:w-[40%] flex flex-col justify-center items-center bg-white p-6 md:p-10">
+      <div className={`w-full lg:w-[40%] flex flex-col items-center bg-white p-6 md:p-10 ${centerContent ? 'justify-center' : 'justify-start pt-24 overflow-y-auto'}`}>
         <h2 className="text-3xl md:text-4xl font-nunitoSemiBold mb-6">{title}</h2>
         {description ? (
           <p className="text-center text-gray-500 mb-6">

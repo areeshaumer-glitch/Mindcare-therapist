@@ -1,15 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Star, FileText, MessageSquare, MapPin } from 'lucide-react';
-import images from '../../assets/Images';
 // import { appointmentsData } from '../../components/Data'; // Removed hardcoded data
 import { Method, callApi } from '../../netwrok/NetworkManager';
 import { api } from '../../netwrok/Environment';
+import { DEFAULT_AVATAR } from '../../assets/defaultAvatar';
 
 const Dashboard = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [therapists, setTherapists] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [meta, setMeta] = useState(null);
+  const { navigationEvent } = useOutletContext();
+
+  useEffect(() => {
+    if (navigationEvent?.label === 'Dashboard') {
+      setSelectedAppointment(null);
+    }
+  }, [navigationEvent]);
 
   // Helper functions from Appointment.jsx to process API data
   const sanitizeImageUrl = (value) => {
@@ -99,116 +107,80 @@ const Dashboard = () => {
     myComments: 1040 // Placeholder as per original
   };
 
+  const todayAppointments = useMemo(() => {
+    const today = new Date();
+    return therapists.filter((appointment) => {
+      if (!appointment.appointmentDate) return false;
+      const appDate = new Date(appointment.appointmentDate);
+      return (
+        appDate.getDate() === today.getDate() &&
+        appDate.getMonth() === today.getMonth() &&
+        appDate.getFullYear() === today.getFullYear()
+      );
+    });
+  }, [therapists]);
+
   if (selectedAppointment) {
     const user = selectedAppointment.user || {};
-    const name = selectedAppointment?.name || user?.name || user?.fullName || 'Profile';
+    const name = selectedAppointment?.name || user?.name || user?.fullName || '-';
     const image =
       sanitizeImageUrl(selectedAppointment?.profileImage) ||
       sanitizeImageUrl(user?.profileImage) ||
-      'https://i.pravatar.cc/120';
-    const location = selectedAppointment?.location || user?.location || '';
-    const bio = selectedAppointment?.bio || user?.bio || '';
-    const specializationsList = Array.isArray(selectedAppointment?.specializations) ? selectedAppointment.specializations : [];
+      DEFAULT_AVATAR;
 
-    const displayDate = selectedAppointment.date ? new Date(selectedAppointment.date).toLocaleDateString() : '';
-    const displayTime = selectedAppointment.time || '';
+    const displayDate = selectedAppointment.appointmentDate ? new Date(selectedAppointment.appointmentDate).toLocaleDateString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).toUpperCase() : '';
+    const displayTime = (selectedAppointment.startTime && selectedAppointment.endTime) 
+      ? `${selectedAppointment.startTime} - ${selectedAppointment.endTime}` 
+      : (selectedAppointment.startTime || '');
 
     return (
       <div className="h-full font-nunito">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg  p-6 md:p-8">
-            {/* Back Button */}
-            <button
-              onClick={handleBackClick}
-              className="flex items-center text-gray-600 hover:text-gray-800 mb-6 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              <span className="text-lg font-medium">Back to Appointments</span>
-            </button>
+        <div className="w-full">
+        
+         
 
-            {/* Student Info */}
-            <div className="flex items-center mb-8">
+          <div className="bg-white rounded-[20px] shadow-sm p-8">
+            <div className="flex items-center mb-6">
               <img
                 src={image}
                 alt={name}
-                className="w-16 h-16 rounded-full object-cover mr-4"
+                className="w-10 h-10 rounded-full object-cover mr-3"
               />
-              <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-semibold text-gray-800">{name}</h1>
-                {location && (
-                  <div className="flex items-center gap-2 text-gray-600 mt-1">
-                    <MapPin className="w-4 h-4" />
-                    <span className="text-sm truncate">{location}</span>
-                  </div>
-                )}
-              </div>
+              <h1 className="text-base font-bold text-gray-900">{name}</h1>
             </div>
 
-            {/* Appointment Details */}
-            {(displayDate || displayTime) ? (
-              <div className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">Appointment date & time</h2>
-                <div className="flex flex-wrap items-center gap-4 text-gray-600">
-                  {displayDate && (
-                    <div className="flex items-center">
-                      <Calendar className="w-5 h-5 mr-2" />
-                      <span>{displayDate}</span>
-                    </div>
-                  )}
-                  {displayTime && (
-                    <div className="flex items-center">
-                      <Clock className="w-5 h-5 mr-2" />
-                      <span>{displayTime}</span>
-                    </div>
-                  )}
+              <div className="mb-6">
+                <h2 className="text-sm font-bold text-gray-900 mb-2">Appointment date & time</h2>
+                <div className="flex flex-wrap items-center gap-6 text-gray-500">
+                  <div className="flex items-center text-sm">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    <span>{displayDate || 'Date not available'}</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Clock className="w-4 h-4 mr-2" />
+                    <span>{displayTime || 'Time not available'}</span>
+                  </div>
                 </div>
               </div>
-            ) : null}
 
-            {/* Bio */}
-            {bio && (
-              <div className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-800 mb-1">Bio</h2>
-                <p className="text-gray-600 leading-relaxed">{bio}</p>
+              <div className="mb-6">
+                <h2 className="text-sm font-bold text-gray-900 mb-2">Mental Health Goals</h2>
+                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.goals || 'No goals provided.'}</p>
               </div>
-            )}
 
-            {/* Specializations */}
-            {specializationsList.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-gray-800 mb-3">Specializations</h2>
-                <div className="flex flex-wrap gap-2">
-                  {specializationsList.map((s) => (
-                    <span
-                      key={String(s)}
-                      className="px-3 py-1 rounded-full text-sm bg-teal-50 text-teal-700"
-                    >
-                      {String(s).replaceAll('_', ' ')}
-                    </span>
-                  ))}
-                </div>
+              <div className="mb-6">
+                <h2 className="text-sm font-bold text-gray-900 mb-2">Note</h2>
+                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.note || 'No notes provided.'}</p>
               </div>
-            )}
 
-            {/* Extra Fields (if present in API later) */}
-            {selectedAppointment?.goals && (
-              <div className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-800 mb-1">Mental Health Goals</h2>
-                <p className="text-gray-600 leading-relaxed">{selectedAppointment.goals}</p>
-              </div>
-            )}
-            {selectedAppointment?.note && (
-              <div className="mb-8">
-                <h2 className="text-lg font-semibold text-gray-800 mb-1">Note</h2>
-                <p className="text-gray-600 leading-relaxed">{selectedAppointment.note}</p>
-              </div>
-            )}
-            {selectedAppointment?.aiSummary && (
               <div>
-                <h2 className="text-lg font-semibold text-gray-800 mb-1">AI Summary</h2>
-                <p className="text-gray-600 leading-relaxed">{selectedAppointment.aiSummary}</p>
+                <h2 className="text-sm font-bold text-gray-900 mb-2">AI Summary</h2>
+                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.aiSummary || 'No AI summary available.'}</p>
               </div>
-            )}
 
           </div>
         </div>
@@ -282,42 +254,28 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {isLoading && <div className="text-gray-500">Loading...</div>}
 
-            {!isLoading && therapists.map((appointment, idx) => {
-              // Logic to show "Today's" info
-              const today = new Date();
-              const appDate = appointment.date ? new Date(appointment.date) : null;
+            {!isLoading && todayAppointments.length > 0 ? (
+              todayAppointments.map((appointment, idx) => {
+                const user = appointment.user || {};
+                const name = appointment.name || user.name || user.fullName || '-';
+                const image =
+                  sanitizeImageUrl(appointment.profileImage) ||
+                  sanitizeImageUrl(user.profileImage) ||
+                  DEFAULT_AVATAR;
 
-              // IMPORTANT: In a real app we'd strictly filter here. 
-              // For demonstration if no strict requirement to HIDE non-today, we might show all pending.
-              // But title says "Today Appointments" so we should ideally check dates.
-              // Checking if same day:
-              const isToday = appDate &&
-                appDate.getDate() === today.getDate() &&
-                appDate.getMonth() === today.getMonth() &&
-                appDate.getFullYear() === today.getFullYear();
+                const timeLabel = (appointment.startTime && appointment.endTime) 
+                  ? `${appointment.startTime} - ${appointment.endTime}` 
+                  : (appointment.startTime || '');
+                const dateLabel = appointment.appointmentDate ? formatCardDate(new Date(appointment.appointmentDate)) : '';
 
-              // For now, let's SHOW ALL pending as "Today" might be a loose term or placeholder in dev,
-              // OR better, show only if today. 
+                const key = appointment._id || appointment.id || idx;
 
-              const user = appointment.user || {};
-              const name = appointment.name || user.name || user.fullName || 'Student Name';
-              const image =
-                sanitizeImageUrl(appointment.profileImage) ||
-                sanitizeImageUrl(user.profileImage) ||
-                'https://i.pravatar.cc/120';
-
-              const timeLabel = appointment.time || '';
-              const dateLabel = appDate ? formatCardDate(appDate) : '';
-
-              const key = appointment._id || appointment.id || idx;
-
-              return (
-                <div
-                  key={key}
-                  onClick={() => handleAppointmentClick(appointment)}
-                  className="bg-white rounded-2xl p-6 cursor-pointer duration-200 shadow-sm hover:shadow-md"
-                >
-                  <div className="flex items-center">
+                return (
+                  <div
+                    key={key}
+                    onClick={() => handleAppointmentClick(appointment)}
+                    className="bg-white rounded-[24px] w-[316px] h-[120px] p-6 cursor-pointer duration-200 shadow-sm hover:shadow-md flex items-center opacity-100"
+                  >
                     <img
                       src={image}
                       alt={name}
@@ -328,12 +286,10 @@ const Dashboard = () => {
                       <p className="text-sm text-gray-600">{dateLabel} - {timeLabel}</p>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-
-            {!isLoading && therapists.length === 0 && (
-              <div className="text-gray-500">No appointments found.</div>
+                );
+              })
+            ) : (
+              !isLoading && <div className="text-gray-500">No appointment is found for today.</div>
             )}
           </div>
         </div>

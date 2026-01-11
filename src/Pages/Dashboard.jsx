@@ -8,7 +8,7 @@ import TopBar from '../components/TopBar';
 const sidebarItems = [
   { label: 'Dashboard', icon: images.dash },
   { label: 'Create Workout', icon: images.workout },
-  { label: 'Video Library', icon: images.play },
+  { label: 'Video Library', icon: images.video },
   { label: 'Track Attendance', icon: images.track },
   { label: 'Sign Out', icon: images.Signout, isLast: true },
 ];

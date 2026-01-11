@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { ArrowLeft, Calendar, ChevronDown, Clock, MapPin, X } from 'lucide-react';
 import { Method, callApi } from '../../netwrok/NetworkManager';
 import { api } from '../../netwrok/Environment';
+import { DEFAULT_AVATAR } from '../../assets/defaultAvatar';
 
 const Appointment = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -17,6 +19,13 @@ const Appointment = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { navigationEvent } = useOutletContext();
+
+  useEffect(() => {
+    if (navigationEvent?.label === 'Appointments') {
+      setSelectedAppointment(null);
+    }
+  }, [navigationEvent]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -160,115 +169,69 @@ const Appointment = () => {
   if (selectedAppointment) {
     // Determine overlapping fields
     const user = selectedAppointment.user || {};
-    const name = selectedAppointment.name || user.name || user.fullName || 'Student Name';
+    const name = selectedAppointment.name || user.name || user.fullName || '-';
     const profileImage =
       sanitizeImageUrl(selectedAppointment.profileImage) ||
       sanitizeImageUrl(user.profileImage) ||
       user.avatar ||
-      'https://i.pravatar.cc/120';
-    const location = selectedAppointment?.location || user?.location || '';
-    const bio = selectedAppointment?.bio || user?.bio || '';
-    const specializationsList = Array.isArray(selectedAppointment?.specializations)
-      ? selectedAppointment.specializations
-      : [];
+      DEFAULT_AVATAR;
 
     // Formatting date time
-    const displayDate = selectedAppointment.date ? new Date(selectedAppointment.date).toLocaleDateString() : '';
-    const displayTime = selectedAppointment.time || '';
+    const dateObj = selectedAppointment.appointmentDate ? new Date(selectedAppointment.appointmentDate) : null;
+    const displayDate = dateObj ? dateObj.toLocaleDateString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).toUpperCase() : '';
+    
+    const displayTime = (selectedAppointment.startTime && selectedAppointment.endTime) 
+      ? `${selectedAppointment.startTime} - ${selectedAppointment.endTime}` 
+      : (selectedAppointment.startTime || '');
 
     return (
       <>
         <div className="h-full">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
-              <button
-                onClick={handleBackClick}
-                className="flex items-center text-gray-600 hover:text-gray-800 mb-6 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                <span className="text-sm font-medium">Back to Appointments</span>
-              </button>
+          <div className="w-full">
+           
 
-              <div className="flex items-center mb-8">
+            <div className="bg-white rounded-[20px] shadow-sm p-8">
+              <div className="flex items-center mb-6">
                 <img
                   src={profileImage}
                   alt={name}
-                  className="w-16 h-16 rounded-full object-cover mr-4"
+                  className="w-10 h-10 rounded-full object-cover mr-3"
                 />
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-2xl font-semibold text-gray-800 truncate">{name}</h1>
-                  {location ? (
-                    <div className="flex items-center gap-2 text-gray-600 mt-1">
-                      <MapPin className="w-4 h-4" />
-                      <span className="text-sm truncate">{location}</span>
-                    </div>
-                  ) : null}
+                <h1 className="text-base font-bold text-gray-900">{name}</h1>
+              </div>
+
+              <div className="mb-6">
+                <h2 className="text-sm font-bold text-gray-900 mb-2">Appointment date & time</h2>
+                <div className="flex flex-wrap items-center gap-6 text-gray-500">
+                  <div className="flex items-center text-sm">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    <span>{displayDate || 'Date not available'}</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Clock className="w-4 h-4 mr-2" />
+                    <span>{displayTime || 'Time not available'}</span>
+                  </div>
                 </div>
               </div>
 
-              {(displayDate || displayTime) ? (
-                <div className="mb-8">
-                  <h2 className="text-lg font-bold text-gray-800 mb-1">Appointment date & time</h2>
-                  <div className="flex flex-wrap items-center gap-4 text-gray-600">
-                    {displayDate ? (
-                      <div className="flex items-center">
-                        <Calendar className="w-5 h-5 mr-2" />
-                        <span>{displayDate}</span>
-                      </div>
-                    ) : null}
-                    {displayTime ? (
-                      <div className="flex items-center">
-                        <Clock className="w-5 h-5 mr-2" />
-                        <span>{displayTime}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
+              <div className="mb-6">
+                <h2 className="text-sm font-bold text-gray-900 mb-2">Mental Health Goals</h2>
+                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.goals || 'No goals provided.'}</p>
+              </div>
 
-              {bio ? (
-                <div className="mb-8">
-                  <h2 className="text-lg font-bold text-gray-800 mb-1">Bio</h2>
-                  <p className="text-gray-600 leading-relaxed">{bio}</p>
-                </div>
-              ) : null}
+              <div className="mb-6">
+                <h2 className="text-sm font-bold text-gray-900 mb-2">Note</h2>
+                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.note || 'No notes provided.'}</p>
+              </div>
 
-              {specializationsList.length > 0 ? (
-                <div className="mb-8">
-                  <h2 className="text-lg font-bold text-gray-800 mb-3">Specializations</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {specializationsList.map((s) => (
-                      <span
-                        key={String(s)}
-                        className="px-3 py-1 rounded-full text-sm bg-teal-50 text-teal-700"
-                      >
-                        {String(s).replaceAll('_', ' ')}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {selectedAppointment?.goals ? (
-                <div className="mb-8">
-                  <h2 className="text-lg font-bold text-gray-800 mb-1">Mental Health Goals</h2>
-                  <p className="text-gray-600 leading-relaxed">{selectedAppointment.goals}</p>
-                </div>
-              ) : null}
-
-              {selectedAppointment?.note ? (
-                <div className="mb-8">
-                  <h2 className="text-lg font-bold text-gray-800 mb-1">Note</h2>
-                  <p className="text-gray-600 leading-relaxed">{selectedAppointment.note}</p>
-                </div>
-              ) : null}
-
-              {selectedAppointment?.aiSummary ? (
-                <div>
-                  <h2 className="text-lg font-bold text-gray-800 mb-1">Ai Summary</h2>
-                  <p className="text-gray-600 leading-relaxed">{selectedAppointment.aiSummary}</p>
-                </div>
-              ) : null}
+              <div>
+                <h2 className="text-sm font-bold text-gray-900 mb-2">Ai Summary</h2>
+                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.aiSummary || 'No AI summary available.'}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -333,7 +296,7 @@ const Appointment = () => {
                 <button
                   type="button"
                   onClick={() => setActiveTab('upcoming')}
-                  className={`px-4 py-2 rounded-full text-sm font-medium ${activeTab === 'upcoming' ? 'bg-teal-700 text-white' : 'bg-gray-200 text-gray-700'
+                  className={`w-[121px] h-[33px] px-[21px] py-[9px] rounded-[16px] text-sm font-medium flex items-center justify-center gap-[10px] ${activeTab === 'upcoming' ? 'bg-teal-700 text-white' : 'bg-gray-200 text-gray-700'
                     }`}
                 >
                   Upcoming
@@ -341,7 +304,7 @@ const Appointment = () => {
                 <button
                   type="button"
                   onClick={() => setActiveTab('completed')}
-                  className={`px-4 py-2 rounded-full text-sm font-medium ${activeTab === 'completed' ? 'bg-teal-700 text-white' : 'bg-gray-200 text-gray-700'
+                  className={`w-[121px] h-[33px] px-[21px] py-[9px] rounded-[16px] text-sm font-medium flex items-center justify-center gap-[10px] ${activeTab === 'completed' ? 'bg-teal-700 text-white' : 'bg-[#E6E6E6] text-gray-700'
                     }`}
                 >
                   Completed
@@ -422,10 +385,10 @@ const Appointment = () => {
             {!isLoading && appointments.map((appointment, idx) => {
               // Extract fields from new appointment object structure
               const user = appointment.user || {};
-              const title = user.name || user.fullName || user.email || 'Client';
+              const title = user.name || user.fullName || '-';
               const image = user.profileImage
                 ? sanitizeImageUrl(user.profileImage)
-                : 'https://i.pravatar.cc/120';
+                : DEFAULT_AVATAR;
               const key = appointment._id || idx;
 
               const dateStr = appointment.appointmentDate;
@@ -456,18 +419,16 @@ const Appointment = () => {
                   type="button"
                   key={key}
                   onClick={() => handleAppointmentClick(appointment)}
-                  className="bg-white rounded-2xl px-5 py-4 shadow-sm hover:shadow-md transition-shadow text-left"
+                  className="bg-white rounded-[24px] w-[316px] h-[120px] p-6 cursor-pointer duration-200 shadow-sm hover:shadow-md flex items-center opacity-100 text-left"
                 >
-                  <div className="flex items-center gap-4">
-                    <img
-                      src={image}
-                      alt={title}
-                      className="w-14 h-14 rounded-full object-cover"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-gray-900 truncate">{title}</div>
-                      <div className="text-xs text-gray-500 mt-1">{metaLine}</div>
-                    </div>
+                  <img
+                    src={image}
+                    alt={title}
+                    className="w-12 h-12 rounded-full object-cover mr-4"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-1 truncate">{title}</h3>
+                    <p className="text-sm text-gray-600">{metaLine}</p>
                   </div>
                 </button>
               );

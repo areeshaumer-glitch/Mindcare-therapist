@@ -11,7 +11,7 @@ import { api } from '../../netwrok/Environment';
 
 const MyProfile = () => {
   const [selectedSection, setSelectedSection] = useState('editProfile');
-  const { therapistProfile } = useOutletContext() || {};
+  const { therapistProfile, refreshProfile } = useOutletContext() || {};
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -20,7 +20,7 @@ const MyProfile = () => {
   const renderContent = () => {
     switch (selectedSection) {
       case 'editProfile':
-        return <EditProfile profile={therapistProfile} />;
+        return <EditProfile profile={therapistProfile} onProfileUpdate={refreshProfile} />;
       case 'changePassword':
         return <ChangePassword />;
       case 'comments':
@@ -77,7 +77,7 @@ const MyProfile = () => {
           onClick={() => setSelectedSection('privacy')}
         />
       </div>
-      <div className="w-full md:flex-1 bg-white rounded-xl shadow-md p-3 sm:p-4 md:p-6 self-start mx-4 md:mx-0 max-[450px]:mx-2 max-[450px]:p-3 min-h-[460px]">
+      <div className="w-full md:flex-1 bg-white rounded-xl shadow-md p-3 sm:p-4 md:p-6 mx-4 md:mx-0 max-[450px]:mx-2 max-[450px]:p-3 min-h-[80vh]">
         {renderContent()}
       </div>
     </div>
@@ -196,6 +196,8 @@ const TimeSlotPanel = ({ availability }) => {
     Sunday: false,
   }));
 
+  const [initialStateStr, setInitialStateStr] = useState('');
+
   useEffect(() => {
     const fetchAvailability = async () => {
       try {
@@ -241,6 +243,11 @@ const TimeSlotPanel = ({ availability }) => {
               setSelectedDays(nextSelected);
               setDaySlots(nextSlots);
               setShowSlot2(nextShow2);
+              setInitialStateStr(JSON.stringify({
+                selectedDays: nextSelected,
+                daySlots: nextSlots,
+                showSlot2: nextShow2
+              }));
             }
           },
           onError: (err) => {
@@ -267,16 +274,49 @@ const TimeSlotPanel = ({ availability }) => {
   };
 
   const handleUpdate = async () => {
+    const currentState = {
+      selectedDays,
+      daySlots,
+      showSlot2
+    };
+
+    if (initialStateStr && JSON.stringify(currentState) === initialStateStr) {
+      if (window.showToast) {
+        window.showToast("No time slot changes detected.", "error");
+      }
+      return;
+    }
+
+    // Validation: Ensure selected days have valid time slots
+    const invalidDays = [];
+    const daysToUpdate = allDays.filter(day => selectedDays[day]);
+
+    // Helper to check if slot is valid
+    const isValidSlot = (s) => s.from && s.to && s.from < s.to;
+
+    for (const day of daysToUpdate) {
+      const dParams = daySlots[day];
+      const s1Valid = isValidSlot(dParams.slot1);
+      const s2Valid = !showSlot2[day] || isValidSlot(dParams.slot2);
+
+      if (!s1Valid || !s2Valid) {
+        invalidDays.push(day);
+      }
+    }
+
+    if (invalidDays.length > 0) {
+      if (window.showToast) {
+        window.showToast(`Please check time slots for: ${invalidDays.join(', ')}. Ensure start time is before end time.`, "error");
+      }
+      return;
+    }
+
     setIsUpdating(true);
     try {
-      const promises = allDays
-        .filter(day => selectedDays[day])
+      const promises = daysToUpdate
         .map(day => {
           const slots = [];
           const dParams = daySlots[day];
-
-          // Helper to check if slot is valid
-          const isValidSlot = (s) => s.from && s.to && s.from < s.to;
 
           if (isValidSlot(dParams.slot1)) {
             slots.push(dParams.slot1);
@@ -307,6 +347,7 @@ const TimeSlotPanel = ({ availability }) => {
       if (window.showToast) {
         window.showToast("Availability updated successfully!", "success");
       }
+      setInitialStateStr(JSON.stringify(currentState));
     } catch (error) {
       console.error("Update failed", error);
     } finally {

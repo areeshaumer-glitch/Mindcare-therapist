@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Menu } from 'lucide-react';
-import images from '../assets/Images';
+import { Menu, Bell } from 'lucide-react';
 import NotificationModal from './NotificationModal';
+import { DEFAULT_AVATAR } from '../assets/defaultAvatar';
+
 
 const TopBar = ({ onClick, onMenuClick, profile }) => {
   const [showModal, setShowModal] = useState(false);
@@ -35,7 +36,7 @@ const TopBar = ({ onClick, onMenuClick, profile }) => {
     profile?.profileImage ||
     profile?.user?.profileImage ||
     profile?.user?.avatar ||
-    'https://i.pravatar.cc/40';
+    DEFAULT_AVATAR;
 
   return (
     <header className="w-full bg-white px-4 py-2 sm:px-6 sm:py-3 rounded-[12px] mb-4 sm:mb-6">
@@ -65,7 +66,7 @@ const TopBar = ({ onClick, onMenuClick, profile }) => {
             src={avatar}
             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
             alt="User Avatar"
-            onError={(e) => { e.currentTarget.src = 'https://i.pravatar.cc/40'; }}
+            onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }}
           />
           <div className="flex flex-col justify-center min-w-0 max-w-[200px] sm:max-w-none text-left">
             <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
@@ -80,7 +81,7 @@ const TopBar = ({ onClick, onMenuClick, profile }) => {
           className="order-2 sm:order-3 ml-auto sm:ml-4"
         >
           <div className="relative">
-            <img src={images.notify} className="w-8 h-6 sm:w-10 sm:h-8" alt="Notify" />
+            <Bell className="w-6 h-6 sm:w-8 sm:h-8 text-gray-700" />
             {unreadCount > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] sm:text-xs font-bold rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center">
                 {unreadCount}

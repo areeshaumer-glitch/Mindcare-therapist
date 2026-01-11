@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react';
 import images from '../assets/Images';
+import { DEFAULT_AVATAR } from '../assets/defaultAvatar';
 import { Method, callApi } from '../netwrok/NetworkManager';
 import { api } from '../netwrok/Environment';
 
 const EditProfile = ({ profile, onProfileUpdate }) => {
   const [profileData, setProfileData] = useState(profile);
   const [image, setImage] = useState(null); // Preview or S3 URL
+  const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const fileInputRef = useRef(null);
@@ -56,57 +58,59 @@ const EditProfile = ({ profile, onProfileUpdate }) => {
   const location = profileData?.location || '';
   const specializations = Array.isArray(profileData?.specializations) ? profileData.specializations : [];
 
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      console.log("Starting image upload...", file);
       const previewUrl = URL.createObjectURL(file);
       setImage(previewUrl);
-      setIsUploading(true);
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      try {
-        await callApi({
-          method: Method.POST,
-          endPoint: api.s3Upload,
-          bodyParams: formData,
-          multipart: true,
-          onSuccess: (response) => {
-            console.log("Upload success response:", response);
-            const url = response?.data?.url ?? response?.data ?? response?.url;
-            if (url) {
-              setImage(url);
-              window.showToast?.("Image uploaded successfully", "success");
-            } else {
-              window.showToast?.("Upload successful but URL missing", "warning");
-              console.warn("S3 Upload response missing URL:", response);
-            }
-            setIsUploading(false);
-          },
-          onError: (err) => {
-            console.error("Upload error callback:", err);
-            window.showToast?.("Failed to upload image", "error");
-            setIsUploading(false);
-            setImage(null);
-          }
-        });
-      } catch (error) {
-        console.error("Unexpected upload error:", error);
-        setIsUploading(false);
-        setImage(null);
-      }
+      setSelectedFile(file);
     }
   };
 
-  const handleUpdate = async () => {
-    if (isUploading) {
-      window.showToast?.("Please wait for image upload to complete", "warning");
-      return;
-    }
+  const uploadToS3 = async (file) => {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('file', file);
 
+      callApi({
+        method: Method.POST,
+        endPoint: api.s3Upload,
+        bodyParams: formData,
+        multipart: true,
+        onSuccess: (response) => {
+          const url = response?.data?.url ?? response?.data ?? response?.url;
+          if (url) {
+            resolve(url);
+          } else {
+            console.warn("S3 Upload response missing URL:", response);
+            reject("Upload successful but URL missing");
+          }
+        },
+        onError: (err) => {
+          console.error("Upload error callback:", err);
+          reject(err);
+        }
+      });
+    });
+  };
+
+  const handleUpdate = async () => {
     setIsUpdating(true);
+
+    let imageUrl = image;
+
+    if (selectedFile) {
+      try {
+        setIsUploading(true);
+        imageUrl = await uploadToS3(selectedFile);
+        setIsUploading(false);
+      } catch (error) {
+        setIsUploading(false);
+        setIsUpdating(false);
+        window.showToast?.("Failed to upload image", "error");
+        return;
+      }
+    }
 
     const payload = {
       name: profileData?.name,
@@ -114,7 +118,7 @@ const EditProfile = ({ profile, onProfileUpdate }) => {
       bio: profileData?.bio,
       specializations: profileData?.specializations,
       availability: profileData?.availability,
-      profileImage: image || profileData?.profileImage,
+      profileImage: imageUrl || profileData?.profileImage,
     };
 
     await callApi({
@@ -125,11 +129,15 @@ const EditProfile = ({ profile, onProfileUpdate }) => {
         window.showToast?.("Profile updated successfully", "success");
         setIsUpdating(false);
         // Update local state to reflect changes immediately
-        if (image) {
-          setProfileData(prev => ({ ...prev, profileImage: image }));
+        if (imageUrl) {
+          setProfileData(prev => ({ ...prev, profileImage: imageUrl }));
+          // Clear selected file after successful update
+          setSelectedFile(null);
+          // If we have a blob URL in image, update it to the real S3 URL
+          setImage(imageUrl);
         }
         if (onProfileUpdate) {
-          onProfileUpdate();
+          onProfileUpdate({ ...payload, profileImage: imageUrl || profileData?.profileImage });
         }
       },
       onError: (err) => {
@@ -163,13 +171,11 @@ const EditProfile = ({ profile, onProfileUpdate }) => {
           >
             {/* Simplified Logic: Show profileImage if valid, else default camera. Border removed. */}
             <img
-              src={profileImage || images.camera}
+              src={profileImage || DEFAULT_AVATAR}
               alt="Profile"
               className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover"
               onError={(e) => {
-                if (e.currentTarget.src !== images.camera) {
-                  e.currentTarget.src = images.camera;
-                }
+                e.currentTarget.src = DEFAULT_AVATAR;
               }}
             />
 
