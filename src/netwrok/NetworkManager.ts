@@ -319,7 +319,9 @@ export const callApi = async ({
       } else if (axiosError.response) {
         const serverError = axiosError.response.data as ApiResponse;
         onError && onError(serverError);
-        showToast(serverError?.message || "Request failed. Please try again.");
+        if (!endPoint.includes("auth/logout") && !endPoint.includes("logout")) {
+            showToast(serverError?.message || "Request failed. Please try again.");
+        }
       } else {
         onError && onError({ message: "Request failed. Please try again." });
         showToast("Request failed. Please try again.");

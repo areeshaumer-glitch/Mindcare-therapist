@@ -263,10 +263,13 @@ const Dashboard = () => {
                   sanitizeImageUrl(user.profileImage) ||
                   DEFAULT_AVATAR;
 
-                const timeLabel = (appointment.startTime && appointment.endTime) 
-                  ? `${appointment.startTime} - ${appointment.endTime}` 
-                  : (appointment.startTime || '');
-                const dateLabel = appointment.appointmentDate ? formatCardDate(new Date(appointment.appointmentDate)) : '';
+                const start = appointment.startTime || appointment.time;
+                const end = appointment.endTime;
+                const timeLabel = (start && end) 
+                  ? `${start} - ${end}` 
+                  : (start || '');
+                const dateStr = appointment.appointmentDate || appointment.date;
+                const dateLabel = dateStr ? formatCardDate(new Date(dateStr)) : '';
 
                 const key = appointment._id || appointment.id || idx;
 

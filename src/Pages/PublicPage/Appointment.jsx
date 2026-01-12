@@ -391,10 +391,12 @@ const Appointment = () => {
                 : DEFAULT_AVATAR;
               const key = appointment._id || idx;
 
-              const dateStr = appointment.appointmentDate;
-              const timeStr = (appointment.startTime && appointment.endTime)
-                ? `${appointment.startTime} - ${appointment.endTime}`
-                : (appointment.startTime || '');
+              const dateStr = appointment.appointmentDate || appointment.date;
+              const start = appointment.startTime || appointment.time;
+              const end = appointment.endTime;
+              const timeStr = (start && end)
+                ? `${start} - ${end}`
+                : (start || '');
               const dateObj = dateStr ? new Date(dateStr) : null;
 
               // Filter logic if date is selected

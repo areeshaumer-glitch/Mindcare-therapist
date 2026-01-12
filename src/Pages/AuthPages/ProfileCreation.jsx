@@ -153,21 +153,7 @@ const ProfileCreation = () => {
 
     setIsSavingProfile(false);
   };
-  const Modal = ({ onClose, children }) => {
-    return (
-      <div
-        className="fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center z-50"
-        onClick={onClose}
-      >
-        <div
-          className={`bg-white rounded-[20px] w-[95%] max-w-6xl max-h-[90vh] overflow-y-auto shadow-xl relative ${showScrollbar ? '' : 'hide-scrollbar'}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {children}
-        </div>
-      </div>
-    );
-  };
+
   return (
     <div className='min-height flex'>
       <AuthLayout title="Profile Creation" centerContent={false}>
@@ -211,7 +197,7 @@ const ProfileCreation = () => {
                   <input
                     type="file"
                     id="imageUpload"
-                    accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif"
+                    accept="image/*"
                     onChange={handleImageChange}
                     className="hidden"
                   />
@@ -278,12 +264,28 @@ const ProfileCreation = () => {
 
       </AuthLayout>
       {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
+        <Modal onClose={() => setIsModalOpen(false)} showScrollbar={showScrollbar}>
 
           <TimeSlot onNext={handleSubmitProfile} isSubmitting={isSavingProfile} onSelectionChange={handleTimeSlotSelection} />
 
         </Modal>
       )}
+    </div>
+  );
+};
+
+const Modal = ({ onClose, children, showScrollbar }) => {
+  return (
+    <div
+      className="fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className={`bg-white rounded-[20px] w-[95%] max-w-6xl max-h-[90vh] overflow-y-auto shadow-xl relative ${showScrollbar ? '' : 'hide-scrollbar'}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
     </div>
   );
 };

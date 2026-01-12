@@ -77,7 +77,7 @@ const MyProfile = () => {
           onClick={() => setSelectedSection('privacy')}
         />
       </div>
-      <div className="w-full md:flex-1 bg-white rounded-xl shadow-md p-3 sm:p-4 md:p-6 mx-4 md:mx-0 max-[450px]:mx-2 max-[450px]:p-3 min-h-[80vh]">
+      <div className="w-full md:flex-1 bg-white rounded-xl shadow-md p-3 sm:p-4 md:p-6 mx-4 md:mx-0 max-[450px]:mx-2 max-[450px]:p-3 h-fit min-h-[450px]">
         {renderContent()}
       </div>
     </div>
@@ -355,7 +355,7 @@ const TimeSlotPanel = ({ availability }) => {
     }
   };
 
-  return (
+return (
     <div className="p-4 md:p-6">
       <div className="space-y-6">
         {allDays.map((day) => (

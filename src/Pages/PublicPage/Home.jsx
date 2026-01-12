@@ -119,10 +119,12 @@ const Home = () => {
           endPoint: api.logout,
           bodyParams: { refreshToken },
           onSuccess: () => {
+            window.showToast?.('Logged out successfully', 'success');
             logout();
             navigate('/', { replace: true });
           },
           onError: () => {
+            window.showToast?.('Logged out successfully', 'success');
             logout();
             navigate('/', { replace: true });
           },

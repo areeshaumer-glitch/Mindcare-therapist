@@ -67,6 +67,7 @@ export default function SignIn() {
                   const data = payload?.data ?? payload;
                   const me = data?.therapistProfile ?? data?.profile ?? data?.therapist ?? data;
                   if (me) {
+                    useAuthStore.getState().updateUserData({ isProfileCompleted: true });
                     navigate('/home/dashboard');
                     return;
                   }
@@ -74,6 +75,8 @@ export default function SignIn() {
                 },
                 onError: (err) => {
                   const message = String(err?.message ?? '').toLowerCase();
+                  const status = err?.status;
+
                   if (
                     message.includes('permission') ||
                     message.includes('forbidden') ||
@@ -84,7 +87,7 @@ export default function SignIn() {
                     navigate('/', { replace: true });
                     return;
                   }
-                  if (message.includes('profile not found') || message.includes('therapist profile not found')) {
+                  if (status === 404 || message.includes('profile not found') || message.includes('therapist profile not found')) {
                     navigate('/create-profile');
                     return;
                   }

@@ -19,7 +19,7 @@ const TimeInput = ({ value, onChange, placeholder, hasError }) => (
   </div>
 );
 
-const TimeSlot = ({ onClick, onNext, isSubmitting = false }) => {
+const TimeSlot = ({ onClick, onNext, isSubmitting = false, onSelectionChange }) => {
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   const [selectedDays, setSelectedDays] = useState({
@@ -31,6 +31,12 @@ const TimeSlot = ({ onClick, onNext, isSubmitting = false }) => {
     Saturday: false,
     Sunday: false,
   });
+
+  useEffect(() => {
+    if (onSelectionChange) {
+      onSelectionChange(selectedDays);
+    }
+  }, [selectedDays, onSelectionChange]);
 
   const [showExtraBoxes, setShowExtraBoxes] = useState({});
   const [timeSlots, setTimeSlots] = useState({});
@@ -202,15 +208,6 @@ const TimeSlot = ({ onClick, onNext, isSubmitting = false }) => {
 
   return (
     <div className="bg-white p-6 md:py-8 md:pr-8 md:pl-[60px] w-full mx-auto">
-      <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Add Time slot</h1>
 
       <div className="space-y-5 mb-2">
