@@ -50,23 +50,39 @@ function ScrollToTop() {
 }
 
 function ToastHost() {
-  const [toasts, setToasts] = useState([]);
+  const [currentToast, setCurrentToast] = useState(null);
+  const [queue, setQueue] = useState([]);
 
   useEffect(() => {
     const show = (message, type = "error") => {
       if (!message) return;
       const id = `${Date.now()}-${Math.random()}`;
-      const toast = { id, message: String(message), type };
-      setToasts((prev) => [...prev, toast]);
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 4000);
+      const newToast = { id, message: String(message), type };
+      
+      setQueue((prev) => [...prev, newToast]);
     };
     window.showToast = show;
     return () => {
       delete window.showToast;
     };
   }, []);
+
+  useEffect(() => {
+    if (!currentToast && queue.length > 0) {
+      const next = queue[0];
+      setQueue((prev) => prev.slice(1));
+      setCurrentToast(next);
+    }
+  }, [currentToast, queue]);
+
+  useEffect(() => {
+    if (currentToast) {
+      const timer = setTimeout(() => {
+        setCurrentToast(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentToast]);
 
   const color = (type) =>
     type === "success"
@@ -75,16 +91,16 @@ function ToastHost() {
         ? "bg-yellow-600"
         : "bg-red-600";
 
+  if (!currentToast) return null;
+
   return (
     <div className="fixed top-4 right-4 z-[1000] space-y-2">
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          className={`text-white ${color(t.type)} px-4 py-3 rounded-lg shadow-lg max-w-xs`}
-        >
-          {t.message}
-        </div>
-      ))}
+      <div
+        key={currentToast.id}
+        className={`text-white ${color(currentToast.type)} px-4 py-3 rounded-lg shadow-lg max-w-xs`}
+      >
+        {currentToast.message}
+      </div>
     </div>
   );
 }

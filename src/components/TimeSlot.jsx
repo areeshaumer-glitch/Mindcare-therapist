@@ -38,57 +38,117 @@ const TimeSlot = ({ onClick, onNext, isSubmitting = false }) => {
   const [isSame, setIsSame] = useState(false);
 
   useEffect(() => {
-    if (!timeSlots.Monday) {
-      initializeDay('Monday');
-    }
+    // Initialize all days
+    const initialSlots = {};
+    days.forEach(day => {
+      initialSlots[day] = [{ from: '', to: '' }];
+    });
+    setTimeSlots(initialSlots);
   }, []);
 
-  const initializeDay = (day) => {
-    setTimeSlots(prev => ({
-      ...prev,
-      [day]: {
-        slot1: { from: '', to: '' },
-        slot2: { from: '', to: '' }
-      }
-    }));
-  };
-
   const handleDayChange = (day) => {
+    const isSelecting = !selectedDays[day];
     setSelectedDays(prev => ({
       ...prev,
-      [day]: !prev[day]
+      [day]: isSelecting
     }));
 
-    if (!timeSlots[day]) {
-      initializeDay(day);
+    // If we are selecting a new day and isSame is true
+    if (isSelecting && isSame) {
+      // Find the previous selected day
+      const dayIndex = days.indexOf(day);
+      let previousDay = null;
+      
+      // Look backwards for the nearest selected day
+      for (let i = dayIndex - 1; i >= 0; i--) {
+        const d = days[i];
+        if (selectedDays[d]) {
+          previousDay = d;
+          break;
+        }
+      }
+
+      // If no previous selected day found, maybe default to Monday if it has data?
+      // Or just strictly follow "previous selected day". 
+      // If Monday is deselected, we might not have a source. 
+      // Let's assume Monday is usually the source or the first selected day.
+      if (previousDay && timeSlots[previousDay]) {
+        const filteredSlots = timeSlots[previousDay].filter(slot => slot.from.trim() && slot.to.trim());
+        setTimeSlots(prev => ({
+          ...prev,
+          [day]: filteredSlots.length > 0 ? filteredSlots.map(slot => ({ ...slot })) : [{ from: '', to: '' }]
+        }));
+      } else if (dayIndex > 0 && selectedDays['Monday']) {
+          // Fallback to Monday if previous wasn't found but Monday is there
+          // This covers cases where user skips days but wants "Same"
+           const filteredSlots = timeSlots['Monday'].filter(slot => slot.from.trim() && slot.to.trim());
+           setTimeSlots(prev => ({
+            ...prev,
+            [day]: filteredSlots.length > 0 ? filteredSlots.map(slot => ({ ...slot })) : [{ from: '', to: '' }]
+          }));
+      }
     }
   };
 
-  const handleTimeChange = (day, slot, field, value) => {
-    setTimeSlots(prev => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [slot]: {
-          ...prev[day][slot],
-          [field]: value
-        }
+  const handleSameChange = () => {
+    const newIsSame = !isSame;
+    setIsSame(newIsSame);
+
+    if (newIsSame) {
+      // Find the first selected day to use as source
+      const firstSelectedDay = days.find(day => selectedDays[day]);
+      
+      if (firstSelectedDay && timeSlots[firstSelectedDay]) {
+        const sourceSlots = timeSlots[firstSelectedDay].filter(slot => slot.from.trim() && slot.to.trim());
+        
+        setTimeSlots(prev => {
+          const newSlots = { ...prev };
+          days.forEach(day => {
+            // Update all other selected days to match source
+            if (selectedDays[day] && day !== firstSelectedDay) {
+              newSlots[day] = sourceSlots.length > 0 ? sourceSlots.map(slot => ({ ...slot })) : [{ from: '', to: '' }];
+            }
+          });
+          return newSlots;
+        });
       }
-    }));
+    }
+  };
+
+  const handleTimeChange = (day, index, field, value) => {
+    setTimeSlots(prev => {
+      const daySlots = [...(prev[day] || [])];
+      if (!daySlots[index]) daySlots[index] = { from: '', to: '' };
+      daySlots[index] = { ...daySlots[index], [field]: value };
+      return { ...prev, [day]: daySlots };
+    });
 
     if (value.trim()) {
       setErrors(prev => ({
         ...prev,
-        [`${day}-${slot}-${field}`]: false
+        [`${day}-${index}-${field}`]: false
       }));
     }
   };
 
-  const toggleExtraBoxes = (day) => {
-    setShowExtraBoxes(prev => ({
-      ...prev,
-      [day]: !prev[day]
-    }));
+  const addSlot = (day) => {
+    setTimeSlots(prev => {
+      const currentSlots = prev[day] || [];
+      if (currentSlots.length < 3) {
+        return { ...prev, [day]: [...currentSlots, { from: '', to: '' }] };
+      }
+      return prev;
+    });
+  };
+
+  const removeSlot = (day) => {
+    setTimeSlots(prev => {
+      const currentSlots = prev[day] || [];
+      if (currentSlots.length > 1) {
+        return { ...prev, [day]: currentSlots.slice(0, -1) };
+      }
+      return prev;
+    });
   };
 
   const validateFields = () => {
@@ -96,28 +156,18 @@ const TimeSlot = ({ onClick, onNext, isSubmitting = false }) => {
     let hasErrors = false;
 
     Object.keys(selectedDays).forEach(day => {
-      if (selectedDays[day] && timeSlots[day]) {
-        const slot1 = timeSlots[day].slot1;
-        if (!slot1.from.trim()) {
-          newErrors[`${day}-slot1-from`] = true;
-          hasErrors = true;
-        }
-        if (!slot1.to.trim()) {
-          newErrors[`${day}-slot1-to`] = true;
-          hasErrors = true;
-        }
-
-        if (showExtraBoxes[day]) {
-          const slot2 = timeSlots[day].slot2;
-          if (!slot2.from.trim()) {
-            newErrors[`${day}-slot2-from`] = true;
+      if (selectedDays[day]) {
+        const slots = timeSlots[day] || [];
+        slots.forEach((slot, index) => {
+          if (!slot.from.trim()) {
+            newErrors[`${day}-${index}-from`] = true;
             hasErrors = true;
           }
-          if (!slot2.to.trim()) {
-            newErrors[`${day}-slot2-to`] = true;
+          if (!slot.to.trim()) {
+            newErrors[`${day}-${index}-to`] = true;
             hasErrors = true;
           }
-        }
+        });
       }
     });
 
@@ -130,21 +180,12 @@ const TimeSlot = ({ onClick, onNext, isSubmitting = false }) => {
     if (!validateFields()) return;
 
     const availability = Object.keys(selectedDays)
-      .filter((day) => selectedDays[day] && timeSlots[day])
+      .filter((day) => selectedDays[day])
       .map((day) => {
-        const slots = [];
-        const slot1 = timeSlots[day]?.slot1;
-        if (slot1?.from && slot1?.to) {
-          slots.push({ from: slot1.from, to: slot1.to });
-        }
-
-        if (showExtraBoxes[day]) {
-          const slot2 = timeSlots[day]?.slot2;
-          if (slot2?.from && slot2?.to) {
-            slots.push({ from: slot2.from, to: slot2.to });
-          }
-        }
-
+        const slots = (timeSlots[day] || [])
+          .filter(slot => slot.from && slot.to)
+          .map(slot => ({ from: slot.from, to: slot.to }));
+        
         return { day: day.toLowerCase(), timeSlots: slots };
       })
       .filter((d) => d.timeSlots.length > 0);
@@ -160,7 +201,16 @@ const TimeSlot = ({ onClick, onNext, isSubmitting = false }) => {
   };
 
   return (
-    <div className="bg-white p-6 md:p-8 w-full max-w-5xl mx-auto">
+    <div className="bg-white p-6 md:py-8 md:pr-8 md:pl-[60px] w-full mx-auto">
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Add Time slot</h1>
 
       <div className="space-y-5 mb-2">
@@ -195,11 +245,11 @@ const TimeSlot = ({ onClick, onNext, isSubmitting = false }) => {
                      {isSame && <Check size={16} className="text-teal-700" strokeWidth={3} />}
                    </div>
                    <input
-                     type="checkbox"
-                     checked={isSame}
-                     onChange={() => setIsSame(!isSame)}
-                     className="hidden"
-                   />
+                    type="checkbox"
+                    checked={isSame}
+                    onChange={handleSameChange}
+                    className="hidden"
+                  />
                    <span className="text-gray-500 text-base">Same</span>
                  </label>
                )}
@@ -207,46 +257,41 @@ const TimeSlot = ({ onClick, onNext, isSubmitting = false }) => {
 
             {/* Time Slots */}
             {selectedDays[day] && (
-              <div className="flex flex-wrap items-center gap-4">
-                {/* Slot 1 */}
-                <TimeInput
-                  placeholder="From"
-                  value={timeSlots[day]?.slot1?.from || ''}
-                  onChange={(e) => handleTimeChange(day, 'slot1', 'from', e.target.value)}
-                  hasError={errors[`${day}-slot1-from`]}
-                />
-                <TimeInput
-                  placeholder="To"
-                  value={timeSlots[day]?.slot1?.to || ''}
-                  onChange={(e) => handleTimeChange(day, 'slot1', 'to', e.target.value)}
-                  hasError={errors[`${day}-slot1-to`]}
-                />
-
-                {/* Slot 2 */}
-                {showExtraBoxes[day] && (
-                  <>
+              <div className="flex flex-nowrap items-center gap-4 overflow-x-auto pb-2 hide-scrollbar">
+                {/* Dynamic Slots */}
+                {(timeSlots[day] || []).map((slot, index) => (
+                  <React.Fragment key={index}>
                     <TimeInput
                       placeholder="From"
-                      value={timeSlots[day]?.slot2?.from || ''}
-                      onChange={(e) => handleTimeChange(day, 'slot2', 'from', e.target.value)}
-                      hasError={errors[`${day}-slot2-from`]}
+                      value={slot.from || ''}
+                      onChange={(e) => handleTimeChange(day, index, 'from', e.target.value)}
+                      hasError={errors[`${day}-${index}-from`]}
                     />
                     <TimeInput
                       placeholder="To"
-                      value={timeSlots[day]?.slot2?.to || ''}
-                      onChange={(e) => handleTimeChange(day, 'slot2', 'to', e.target.value)}
-                      hasError={errors[`${day}-slot2-to`]}
+                      value={slot.to || ''}
+                      onChange={(e) => handleTimeChange(day, index, 'to', e.target.value)}
+                      hasError={errors[`${day}-${index}-to`]}
                     />
-                  </>
-                )}
+                  </React.Fragment>
+                ))}
 
-                {/* Add Button */}
-                <button
-                  onClick={() => toggleExtraBoxes(day)}
-                  className="w-8 h-8 bg-teal-700 hover:bg-teal-800 text-white rounded-full flex items-center justify-center ml-2 transition-colors"
-                >
-                  {showExtraBoxes[day] ? <Minus size={18} /> : <Plus size={18} />}
-                </button>
+                {/* Add/Remove Button */}
+                {(timeSlots[day] || []).length < 3 ? (
+                  <button
+                    onClick={() => addSlot(day)}
+                    className="w-8 h-8 bg-teal-700 hover:bg-teal-800 text-white rounded-full flex items-center justify-center ml-2 transition-colors shrink-0"
+                  >
+                    <Plus size={18} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => removeSlot(day)}
+                    className="w-8 h-8 bg-teal-700 hover:bg-teal-800 text-white rounded-full flex items-center justify-center ml-2 transition-colors shrink-0"
+                  >
+                    <Minus size={18} />
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -258,7 +303,8 @@ const TimeSlot = ({ onClick, onNext, isSubmitting = false }) => {
         <button
           onClick={handleNext}
           disabled={isSubmitting}
-          className="bg-teal-700 hover:bg-teal-800 text-white font-semibold py-3 px-[150px] rounded-[12px] transition-colors uppercase text-sm tracking-wide"
+          className="bg-teal-700 hover:bg-teal-800 text-white font-semibold rounded-[12px] transition-colors uppercase text-sm tracking-wide flex items-center justify-center"
+          style={{ width: '390px', height: '48px', gap: '32px' }}
         >
           NEXT
         </button>

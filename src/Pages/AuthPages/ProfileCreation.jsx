@@ -126,8 +126,7 @@ const ProfileCreation = () => {
         onClick={() => setIsModalOpen(false)}
       >
         <div
-          className="bg-white rounded-[20px] w-[95%] max-w-6xl max-h-[90vh] overflow-y-auto shadow-xl relative [&::-webkit-scrollbar]:hidden"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="bg-white rounded-[20px] w-[95%] max-w-6xl max-h-[90vh] overflow-y-auto shadow-xl relative"
           onClick={(e) => e.stopPropagation()}
         >
           {children}
