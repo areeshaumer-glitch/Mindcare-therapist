@@ -36,6 +36,7 @@ const Home = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const logout = useAuthStore((s) => s.logout);
+  const updateUserData = useAuthStore((s) => s.updateUserData);
   const [therapistProfile, setTherapistProfile] = useState(null);
   const [navigationEvent, setNavigationEvent] = useState(null);
 
@@ -50,9 +51,30 @@ const Home = () => {
         const payload = response?.data ?? response;
         const data = payload?.data ?? payload;
         const me = data?.therapistProfile ?? data?.profile ?? data?.therapist ?? data;
+        if (!me) {
+          updateUserData({ isProfileCompleted: false });
+          navigate('/create-profile', { replace: true });
+          return;
+        }
         setTherapistProfile(me);
       },
-      onError: () => {
+      onError: (err) => {
+        const message = String(err?.message ?? err?.data?.message ?? '').toLowerCase();
+        if (
+          message.includes('permission') ||
+          message.includes('forbidden') ||
+          message.includes('not authorized') ||
+          message.includes('not authorised')
+        ) {
+          logout();
+          navigate('/', { replace: true });
+          return;
+        }
+        if (message.includes('profile not found') || message.includes('therapist profile not found')) {
+          updateUserData({ isProfileCompleted: false });
+          navigate('/create-profile', { replace: true });
+          return;
+        }
         // If the optimistic update was wrong or the fetch fails, we might want to handle it,
         // but typically the previous state or null is fine. 
         // If we want to revert, we'd need more complex logic. 

@@ -4,9 +4,9 @@ import { DEFAULT_AVATAR } from '../../assets/defaultAvatar';
 import AuthLayout from '../../layout/AuthLayout';
 import PrimaryButton from '../../components/PrimaryButton';
 import images from '../../assets/Images';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, X } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import TimeSlot from '../../components/TimeSlot';
 import { Method, callApi } from '../../netwrok/NetworkManager';
 import { api } from '../../netwrok/Environment';
@@ -31,6 +31,12 @@ const ProfileCreation = () => {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const specializations = ['Stress', 'Anxiety', 'Sleep', 'Focus'];
   const updateUserData = useAuthStore((s) => s.updateUserData);
+  const [showScrollbar, setShowScrollbar] = useState(false);
+
+  const handleTimeSlotSelection = useCallback((selectedDays) => {
+    const count = Object.values(selectedDays || {}).filter(Boolean).length;
+    setShowScrollbar(count > 1);
+  }, []);
 
   const toggleSpecialization = (item, setFieldValue) => {
     const updated = selectedSpecializations.includes(item)
@@ -42,11 +48,30 @@ const ProfileCreation = () => {
   };
 
   const handleImageChange = async (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const previewUrl = URL.createObjectURL(file); // preview URL
-      setImage(previewUrl);
-      setIsUploading(true);
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const fileName = String(file.name || '').toLowerCase();
+    const isImageFile =
+      (typeof file.type === 'string' && file.type.startsWith('image/')) ||
+      ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tif', '.tiff', '.heic', '.heif'].some((ext) =>
+        fileName.endsWith(ext)
+      );
+
+    if (!isImageFile) {
+      window.showToast?.('Only image files are allowed', 'error');
+      event.target.value = '';
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setImage((prev) => {
+      if (typeof prev === 'string' && prev.startsWith('blob:')) {
+        URL.revokeObjectURL(prev);
+      }
+      return previewUrl;
+    });
+    setIsUploading(true);
 
       const formData = new FormData();
       formData.append('file', file);
@@ -59,7 +84,12 @@ const ProfileCreation = () => {
         onSuccess: (response) => {
           const url = response?.data?.url ?? response?.data ?? response?.url;
           if (url) {
-            setImage(url);
+            setImage((prev) => {
+              if (typeof prev === 'string' && prev.startsWith('blob:')) {
+                URL.revokeObjectURL(prev);
+              }
+              return url;
+            });
             // window.showToast?.("Image uploaded successfully", "success");
           } else {
             console.warn("S3 Upload response missing URL");
@@ -69,10 +99,14 @@ const ProfileCreation = () => {
         onError: (err) => {
           window.showToast?.("Failed to upload image", "error");
           setIsUploading(false);
-          setImage(null);
+          setImage((prev) => {
+            if (typeof prev === 'string' && prev.startsWith('blob:')) {
+              URL.revokeObjectURL(prev);
+            }
+            return null;
+          });
         }
       });
-    }
   };
   const mapSpecializationKey = (value) => {
     const mapping = {
@@ -123,10 +157,10 @@ const ProfileCreation = () => {
     return (
       <div
         className="fixed inset-0 backdrop-blur-sm bg-black/10 flex items-center justify-center z-50"
-        onClick={() => setIsModalOpen(false)}
+        onClick={onClose}
       >
         <div
-          className="bg-white rounded-[20px] w-[95%] max-w-6xl max-h-[90vh] overflow-y-auto shadow-xl relative"
+          className={`bg-white rounded-[20px] w-[95%] max-w-6xl max-h-[90vh] overflow-y-auto shadow-xl relative ${showScrollbar ? '' : 'hide-scrollbar'}`}
           onClick={(e) => e.stopPropagation()}
         >
           {children}
@@ -177,7 +211,7 @@ const ProfileCreation = () => {
                   <input
                     type="file"
                     id="imageUpload"
-                    accept="image/*"
+                    accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif"
                     onChange={handleImageChange}
                     className="hidden"
                   />
@@ -246,7 +280,7 @@ const ProfileCreation = () => {
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
 
-          <TimeSlot onNext={handleSubmitProfile} isSubmitting={isSavingProfile} />
+          <TimeSlot onNext={handleSubmitProfile} isSubmitting={isSavingProfile} onSelectionChange={handleTimeSlotSelection} />
 
         </Modal>
       )}

@@ -15,6 +15,7 @@ export default function SignIn() {
   const setToken = useAuthStore((s) => s.setToken);
   const setRefreshToken = useAuthStore((s) => s.setRefreshToken);
   const setUserData = useAuthStore((s) => s.setUserData);
+  const logout = useAuthStore((s) => s.logout);
 
   const loginValidationSchema = Yup.object({
     email: Yup.string().email('Invalid email').required('email is Required'),
@@ -58,13 +59,38 @@ export default function SignIn() {
               if (response?.user) {
                 setUserData(response.user);
               }
-
-              if (response?.user?.isProfileCompleted) {
-                navigate('/home/dashboard');
-                return;
-              }
-
-              navigate('/create-profile');
+              callApi({
+                method: Method.GET,
+                endPoint: api.therapistProfileMe,
+                onSuccess: (meResponse) => {
+                  const payload = meResponse?.data ?? meResponse;
+                  const data = payload?.data ?? payload;
+                  const me = data?.therapistProfile ?? data?.profile ?? data?.therapist ?? data;
+                  if (me) {
+                    navigate('/home/dashboard');
+                    return;
+                  }
+                  navigate('/create-profile');
+                },
+                onError: (err) => {
+                  const message = String(err?.message ?? '').toLowerCase();
+                  if (
+                    message.includes('permission') ||
+                    message.includes('forbidden') ||
+                    message.includes('not authorized') ||
+                    message.includes('not authorised')
+                  ) {
+                    logout();
+                    navigate('/', { replace: true });
+                    return;
+                  }
+                  if (message.includes('profile not found') || message.includes('therapist profile not found')) {
+                    navigate('/create-profile');
+                    return;
+                  }
+                  navigate('/home/dashboard');
+                },
+              });
             },
             onError: (error) => {
               // Handled by global toaster

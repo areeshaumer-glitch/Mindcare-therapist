@@ -59,12 +59,30 @@ const EditProfile = ({ profile, onProfileUpdate }) => {
   const specializations = Array.isArray(profileData?.specializations) ? profileData.specializations : [];
 
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setImage(previewUrl);
-      setSelectedFile(file);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileName = String(file.name || '').toLowerCase();
+    const isImageFile =
+      (typeof file.type === 'string' && file.type.startsWith('image/')) ||
+      ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tif', '.tiff', '.heic', '.heif'].some((ext) =>
+        fileName.endsWith(ext)
+      );
+
+    if (!isImageFile) {
+      window.showToast?.('Only image files are allowed', 'error');
+      e.target.value = '';
+      return;
     }
+
+    const previewUrl = URL.createObjectURL(file);
+    setImage((prev) => {
+      if (typeof prev === 'string' && prev.startsWith('blob:')) {
+        URL.revokeObjectURL(prev);
+      }
+      return previewUrl;
+    });
+    setSelectedFile(file);
   };
 
   const uploadToS3 = async (file) => {
@@ -157,7 +175,7 @@ const EditProfile = ({ profile, onProfileUpdate }) => {
         {/* Hidden file input */}
         <input
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/tiff,image/heic,image/heif"
           onChange={handleImageUpload}
           className="hidden"
           ref={fileInputRef}
