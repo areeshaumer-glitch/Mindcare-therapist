@@ -169,7 +169,7 @@ const ProfileCreation = () => {
             setIsModalOpen(true);
           }}
         >
-          {({ setFieldValue, errors, touched }) => (
+          {({ setFieldValue, errors, touched, values }) => (
             <Form className="space-y-4 w-full max-w-md mx-auto">
 
 
@@ -205,13 +205,21 @@ const ProfileCreation = () => {
               </div>
 
               {/* Name */}
-              <Field
-                name="name"
-                type="text"
-                placeholder="Add your Name"
-                className={`w-full px-4 py-3 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 ${errors.name && touched.name ? 'border-red-500' : 'border-[#A1B0CC]'
-                  }`}
-              />
+              <div className="w-full">
+                <Field
+                  name="name"
+                  type="text"
+                  placeholder="Add your Name"
+                  maxLength={50}
+                  className={`w-full px-4 py-3 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 ${(errors.name && touched.name) || (values.name || '').length >= 50 ? 'border-red-500' : 'border-[#A1B0CC]'
+                    }`}
+                />
+                {(values.name || '').length >= 50 && (
+                  <div className="text-right text-xs text-red-500 mt-1">
+                    {(values.name || '').length}/50
+                  </div>
+                )}
+              </div>
 
               {/* Location */}
               <div className="relative w-full">
@@ -219,19 +227,33 @@ const ProfileCreation = () => {
                   name="location"
                   type="text"
                   placeholder="Add your Location"
-                  className={`w-full px-4 py-3 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 ${errors.location && touched.location ? 'border-red-500' : 'border-[#A1B0CC]'
+                  maxLength={100}
+                  className={`w-full px-4 py-3 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 ${(errors.location && touched.location) || (values.location || '').length >= 100 ? 'border-red-500' : 'border-[#A1B0CC]'
                     }`}
                 />
+                {(values.location || '').length >= 100 && (
+                  <div className="text-right text-xs text-red-500 mt-1">
+                    {(values.location || '').length}/100
+                  </div>
+                )}
               </div>
 
               {/* Bio */}
-              <Field
-                as="textarea"
-                name="bio"
-                placeholder="Bio"
-                className={`w-full px-4 py-3 h-32 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none text-gray-700 placeholder-gray-400 ${errors.bio && touched.bio ? 'border-red-500' : 'border-[#A1B0CC]'
-                  }`}
-              />
+              <div className="w-full">
+                <Field
+                  as="textarea"
+                  name="bio"
+                  placeholder="Bio"
+                  maxLength={300}
+                  className={`w-full px-4 py-3 h-32 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none text-gray-700 placeholder-gray-400 ${(errors.bio && touched.bio) || (values.bio || '').length >= 300 ? 'border-red-500' : 'border-[#A1B0CC]'
+                    }`}
+                />
+                {(values.bio || '').length >= 300 && (
+                  <div className="text-right text-xs text-red-500 mt-1">
+                    {(values.bio || '').length}/300
+                  </div>
+                )}
+              </div>
 
               {/* Specializations */}
               <div className="pt-2">

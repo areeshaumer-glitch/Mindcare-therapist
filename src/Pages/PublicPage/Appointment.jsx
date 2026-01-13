@@ -1,9 +1,21 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { ArrowLeft, Calendar, ChevronDown, Clock, MapPin, X } from 'lucide-react';
+import { ArrowLeft, Calendar, CalendarDays, ChevronDown, Clock, MapPin, X } from 'lucide-react';
 import { Method, callApi } from '../../netwrok/NetworkManager';
 import { api } from '../../netwrok/Environment';
 import { DEFAULT_AVATAR } from '../../assets/defaultAvatar';
+
+const formatTime12h = (time24) => {
+  if (!time24 || typeof time24 !== 'string') return '';
+  const [hRaw, mRaw] = time24.split(':');
+  const hours = Number(hRaw);
+  const minutes = Number(mRaw);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return '';
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+  const mm = String(minutes).padStart(2, '0');
+  return `${hour12}:${mm} ${period}`;
+};
 
 const Appointment = () => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -184,9 +196,7 @@ const Appointment = () => {
       year: 'numeric',
     }).toUpperCase() : '';
     
-    const displayTime = (selectedAppointment.startTime && selectedAppointment.endTime) 
-      ? `${selectedAppointment.startTime} - ${selectedAppointment.endTime}` 
-      : (selectedAppointment.startTime || '');
+    const displayTime = selectedAppointment.startTime ? formatTime12h(selectedAppointment.startTime) : '';
 
     return (
       <>
@@ -194,43 +204,43 @@ const Appointment = () => {
           <div className="w-full">
            
 
-            <div className="bg-white rounded-[20px] shadow-sm p-8">
+            <div className="bg-white rounded-[24px] shadow-sm p-6">
               <div className="flex items-center mb-6">
                 <img
                   src={profileImage}
                   alt={name}
-                  className="w-10 h-10 rounded-full object-cover mr-3"
+                  className="w-12 h-12 rounded-full object-cover mr-4"
                 />
-                <h1 className="text-base font-bold text-gray-900">{name}</h1>
+                <h1 className="font-nunito font-bold text-[18px] leading-[24px] tracking-[0px] text-[#121212]">{name}</h1>
               </div>
 
               <div className="mb-6">
-                <h2 className="text-sm font-bold text-gray-900 mb-2">Appointment date & time</h2>
-                <div className="flex flex-wrap items-center gap-6 text-gray-500">
-                  <div className="flex items-center text-sm">
-                    <Calendar className="w-4 h-4 mr-2" />
+                <h2 className="font-nunito font-bold text-[18px] leading-[24px] tracking-[0px] text-[#121212] mb-2">Appointment date & time</h2>
+                <div className="flex flex-wrap items-center gap-6 text-[#121212]">
+                  <div className="flex items-center font-nunito font-normal text-[16px] leading-[26px] tracking-[0px] uppercase">
+                    <CalendarDays className="w-5 h-5 mr-3" />
                     <span>{displayDate || 'Date not available'}</span>
                   </div>
-                  <div className="flex items-center text-sm">
-                    <Clock className="w-4 h-4 mr-2" />
+                  <div className="flex items-center font-nunito font-normal text-[16px] leading-[26px] tracking-[0px] uppercase">
+                    <Clock className="w-5 h-5 mr-3" />
                     <span>{displayTime || 'Time not available'}</span>
                   </div>
                 </div>
               </div>
 
               <div className="mb-6">
-                <h2 className="text-sm font-bold text-gray-900 mb-2">Mental Health Goals</h2>
-                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.goals || 'No goals provided.'}</p>
+                <h2 className="font-nunito font-bold text-[18px] leading-[24px] tracking-[0px] text-[#121212] mb-2">Mental Health Goals</h2>
+                <p className="font-nunito font-normal text-[16px] leading-[100%] tracking-[0px] text-[#121212]">{selectedAppointment?.goals || 'No goals provided.'}</p>
               </div>
 
               <div className="mb-6">
-                <h2 className="text-sm font-bold text-gray-900 mb-2">Note</h2>
-                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.note || 'No notes provided.'}</p>
+                <h2 className="font-nunito font-bold text-[18px] leading-[24px] tracking-[0px] text-[#121212] mb-2">Note</h2>
+                <p className="font-nunito font-normal text-[16px] leading-[100%] tracking-[0px] text-[#121212]">{selectedAppointment?.note || 'No notes provided.'}</p>
               </div>
 
               <div>
-                <h2 className="text-sm font-bold text-gray-900 mb-2">Ai Summary</h2>
-                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.aiSummary || 'No AI summary available.'}</p>
+                <h2 className="font-nunito font-bold text-[18px] leading-[24px] tracking-[0px] text-[#121212] mb-2">AI Summary</h2>
+                <p className="font-nunito font-normal text-[16px] leading-[100%] tracking-[0px] text-[#121212]">{selectedAppointment?.aiSummary || 'No AI summary available.'}</p>
               </div>
             </div>
           </div>
@@ -393,10 +403,8 @@ const Appointment = () => {
 
               const dateStr = appointment.appointmentDate || appointment.date;
               const start = appointment.startTime || appointment.time;
-              const end = appointment.endTime;
-              const timeStr = (start && end)
-                ? `${start} - ${end}`
-                : (start || '');
+              // const end = appointment.endTime;
+              const timeStr = start ? formatTime12h(start) : '';
               const dateObj = dateStr ? new Date(dateStr) : null;
 
               // Filter logic if date is selected
@@ -413,7 +421,7 @@ const Appointment = () => {
               }
 
               const metaLine = (dateObj || timeStr)
-                ? `${dateObj ? formatCardDate(null, dateObj) : ''} ${timeStr ? '· ' + timeStr : ''}`
+                ? `${dateObj ? formatCardDate(null, dateObj) : ''} ${timeStr ? '- ' + timeStr : ''}`
                 : '';
 
               return (

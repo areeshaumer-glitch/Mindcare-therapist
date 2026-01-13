@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Star, FileText, MessageSquare, MapPin } from 'lucide-react';
+import { ArrowLeft, Calendar, CalendarDays, Clock, Star, FileText, MessageSquare, MapPin } from 'lucide-react';
 // import { appointmentsData } from '../../components/Data'; // Removed hardcoded data
 import { Method, callApi } from '../../netwrok/NetworkManager';
 import { api } from '../../netwrok/Environment';
@@ -136,9 +136,9 @@ const Dashboard = () => {
       month: 'short',
       year: 'numeric',
     }).toUpperCase() : '';
-    const displayTime = (selectedAppointment.startTime && selectedAppointment.endTime) 
-      ? `${selectedAppointment.startTime} - ${selectedAppointment.endTime}` 
-      : (selectedAppointment.startTime || '');
+    const displayTime = selectedAppointment.startTime 
+      ? formatTime12h(selectedAppointment.startTime) 
+      : '';
 
     return (
       <div className="h-full font-nunito">
@@ -146,43 +146,43 @@ const Dashboard = () => {
         
          
 
-          <div className="bg-white rounded-[20px] shadow-sm p-8">
+          <div className="bg-white rounded-[24px] shadow-sm p-6">
             <div className="flex items-center mb-6">
               <img
                 src={image}
                 alt={name}
-                className="w-10 h-10 rounded-full object-cover mr-3"
+                className="w-12 h-12 rounded-full object-cover mr-4"
               />
-              <h1 className="text-base font-bold text-gray-900">{name}</h1>
+              <h1 className="text-lg font-bold text-[#121212]">{name}</h1>
             </div>
 
               <div className="mb-6">
-                <h2 className="text-sm font-bold text-gray-900 mb-2">Appointment date & time</h2>
-                <div className="flex flex-wrap items-center gap-6 text-gray-500">
-                  <div className="flex items-center text-sm">
-                    <Calendar className="w-4 h-4 mr-2" />
+                <h2 className="text-base font-bold text-[#121212] mb-2">Appointment date & time</h2>
+                <div className="flex flex-wrap items-center gap-6 text-[#121212]">
+                  <div className="flex items-center text-base">
+                    <CalendarDays className="w-5 h-5 mr-3" />
                     <span>{displayDate || 'Date not available'}</span>
                   </div>
-                  <div className="flex items-center text-sm">
-                    <Clock className="w-4 h-4 mr-2" />
+                  <div className="flex items-center text-base">
+                    <Clock className="w-5 h-5 mr-3" />
                     <span>{displayTime || 'Time not available'}</span>
                   </div>
                 </div>
               </div>
 
               <div className="mb-6">
-                <h2 className="text-sm font-bold text-gray-900 mb-2">Mental Health Goals</h2>
-                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.goals || 'No goals provided.'}</p>
+                <h2 className="text-base font-bold text-[#121212] mb-2">Mental Health Goals</h2>
+                <p className="text-base text-[#121212] leading-7">{selectedAppointment?.goals || 'No goals provided.'}</p>
               </div>
 
               <div className="mb-6">
-                <h2 className="text-sm font-bold text-gray-900 mb-2">Note</h2>
-                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.note || 'No notes provided.'}</p>
+                <h2 className="text-base font-bold text-[#121212] mb-2">Note</h2>
+                <p className="text-base text-[#121212] leading-7">{selectedAppointment?.note || 'No notes provided.'}</p>
               </div>
 
               <div>
-                <h2 className="text-sm font-bold text-gray-900 mb-2">AI Summary</h2>
-                <p className="text-sm text-gray-600 leading-relaxed">{selectedAppointment?.aiSummary || 'No AI summary available.'}</p>
+                <h2 className="text-base font-bold text-[#121212] mb-2">AI Summary</h2>
+                <p className="text-base text-[#121212] leading-7">{selectedAppointment?.aiSummary || 'No AI summary available.'}</p>
               </div>
 
           </div>
@@ -267,10 +267,7 @@ const Dashboard = () => {
                   DEFAULT_AVATAR;
 
                 const start = appointment.startTime || appointment.time;
-                const end = appointment.endTime;
-                const timeLabel = (start && end) 
-                  ? `${start} - ${end}` 
-                  : (start || '');
+                const timeLabel = start ? formatTime12h(start) : '';
                 const dateStr = appointment.appointmentDate || appointment.date;
                 const dateLabel = dateStr ? formatCardDate(new Date(dateStr)) : '';
 
@@ -289,7 +286,9 @@ const Dashboard = () => {
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-semibold text-gray-800 mb-1 truncate">{name}</h3>
-                      <p className="text-sm text-gray-600">{dateLabel} - {timeLabel}</p>
+                      <p className="text-sm text-gray-600">
+                        {dateLabel}{dateLabel && timeLabel ? ' - ' : ''}{timeLabel}
+                      </p>
                     </div>
                   </div>
                 );

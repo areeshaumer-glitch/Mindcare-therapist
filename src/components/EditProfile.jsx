@@ -227,9 +227,9 @@ const EditProfile = ({ profile, onProfileUpdate }) => {
             </div>
 
             <div>
-              {bio ? <p className="text-sm mt-4 whitespace-pre-line">{bio}</p> : null}
+              {bio ? <p className="text-sm mt-4 whitespace-pre-line break-all">{bio}</p> : null}
               <h3 className="font-semibold text-lg mt-4">Location</h3>
-              <p className="text-sm mt-4">{location || '-'}</p>
+              <p className="text-sm mt-4 break-all">{location || '-'}</p>
               <h3 className="font-semibold text-lg mt-4">Specializations</h3>
               <div className="flex flex-row gap-2 flex-wrap">
                 {specializations.length > 0
@@ -253,81 +253,104 @@ const EditProfile = ({ profile, onProfileUpdate }) => {
         ) : (
           // Edit Mode
           <div className="flex flex-col gap-[12px]">
-             {/* Profile Image Upload */}
-             <div className="flex justify-start items-center mb-6">
-                <button
-                  onClick={handleButtonClick}
-                  className="cursor-pointer relative hover:opacity-80 transition-opacity"
-                  disabled={isUploading}
-                >
-                  <div className={`w-[120px] h-[120px] rounded-full flex items-center justify-center overflow-hidden ${profileImage ? '' : 'bg-[#D9D9D9]'}`}>
-                    {profileImage ? (
-                      <img
-                        src={profileImage}
-                        alt="Upload"
-                        className="w-full h-full object-cover"
-                        onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }}
-                      />
-                    ) : (
-                      <Camera className="w-8 h-8 text-black opacity-70" />
-                    )}
-                  </div>
-
+            {/* Profile Image Header */}
+            <div className="flex flex-row items-center justify-between w-full mb-6">
+              <div className="flex items-center gap-4">
+                <div className={`relative w-[100px] h-[100px] rounded-full  flex items-center justify-center overflow-hidden ${profileImage ? '' : 'bg-[#D9D9D9]'}`}>
+                  {profileImage ? (
+                    <img
+                      src={profileImage}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR; }}
+                    />
+                  ) : (
+                    <Camera className="w-8 h-8 text-black opacity-70" />
+                  )}
                   {isUploading && (
-                    <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     </div>
                   )}
-                  
-                   {!profileImage && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                       <Camera className="w-8 h-8 text-black opacity-50" />
-                    </div>
-                   )}
-                </button>
+                </div>
+                <h3 className="font-semibold text-xl text-[#102a43]">{displayName}</h3>
               </div>
 
+              <button
+                type="button"
+                onClick={handleButtonClick}
+                disabled={isUploading}
+                className="px-6 py-2 rounded-[12px] border border-[#102a43] text-[#102a43] font-medium hover:bg-gray-50 transition-colors whitespace-nowrap"
+              >
+                Update Photo
+              </button>
+            </div>
+
             {/* Name */}
-            <div className="relative w-full max-w-[390px]">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                 <User className="h-5 w-5 text-gray-400" />
+            <div className="w-full">
+              <div className="relative w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                   <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={profileData?.name || ''}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Add your Name"
+                  disabled={isUpdating}
+                  maxLength={50}
+                  className={`w-full h-[48px] pl-10 pr-4 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 ${(profileData?.name || '').length >= 50 ? 'border-red-500' : 'border-[#A1B0CC]'}`}
+                />
               </div>
-              <input
-                type="text"
-                value={profileData?.name || ''}
-                onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Add your Name"
-                disabled={isUpdating}
-                className="w-full h-[48px] pl-10 pr-4 border border-[#A1B0CC] rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400"
-              />
+              {(profileData?.name || '').length >= 50 && (
+                <div className="text-right text-xs text-red-500 mt-1">
+                  {(profileData?.name || '').length}/50
+                </div>
+              )}
             </div>
 
             {/* Location */}
-            <div className="relative w-full max-w-[390px]">
-               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                 <MapPin className="h-5 w-5 text-gray-400" />
+            <div className="w-full">
+              <div className="relative w-full">
+                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                   <MapPin className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={profileData?.location || ''}
+                  onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="Add your Location"
+                  disabled={isUpdating}
+                  maxLength={100}
+                  className={`w-full h-[48px] pl-10 pr-4 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400 ${(profileData?.location || '').length >= 100 ? 'border-red-500' : 'border-[#A1B0CC]'}`}
+                />
               </div>
-              <input
-                type="text"
-                value={profileData?.location || ''}
-                onChange={(e) => setProfileData(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="Add your Location"
-                disabled={isUpdating}
-                className="w-full h-[48px] pl-10 pr-4 border border-[#A1B0CC] rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700 placeholder-gray-400"
-              />
+              {(profileData?.location || '').length >= 100 && (
+                <div className="text-right text-xs text-red-500 mt-1">
+                  {(profileData?.location || '').length}/100
+                </div>
+              )}
             </div>
 
             {/* Bio */}
-            <textarea
-              value={profileData?.bio || ''}
-              onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
-              placeholder="Bio"
-              disabled={isUpdating}
-              className="w-full max-w-[390px] px-4 py-3 h-32 border border-[#A1B0CC] rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none text-gray-700 placeholder-gray-400"
-            />
+            <div className="w-full">
+              <textarea
+                value={profileData?.bio || ''}
+                onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
+                placeholder="Bio"
+                disabled={isUpdating}
+                maxLength={300}
+                className={`w-full px-4 py-3 h-32 border rounded-[12px] focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none text-gray-700 placeholder-gray-400 ${(profileData?.bio || '').length >= 300 ? 'border-red-500' : 'border-[#A1B0CC]'}`}
+              />
+              {(profileData?.bio || '').length >= 300 && (
+                <div className="text-right text-xs text-red-500 mt-1">
+                  {(profileData?.bio || '').length}/300
+                </div>
+              )}
+            </div>
 
             {/* Specializations */}
-            <div className="pt-2 w-full max-w-[390px]">
+            <div className="pt-2 w-full">
               <h6 className="text-base text-gray-500 mb-3">Specialization</h6>
               <div className="flex flex-wrap gap-2">
                 {uiSpecializations.map((item) => {

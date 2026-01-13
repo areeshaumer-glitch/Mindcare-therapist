@@ -198,6 +198,8 @@ const TimeSlotPanel = ({ availability }) => {
 
   const [initialStateStr, setInitialStateStr] = useState('');
 
+  const selectedCount = Object.values(selectedDays).filter(Boolean).length;
+
   useEffect(() => {
     const fetchAvailability = async () => {
       try {
@@ -267,10 +269,20 @@ const TimeSlotPanel = ({ availability }) => {
   };
 
   const updateTime = (day, slot, field, value) => {
-    setDaySlots((prev) => ({
-      ...prev,
-      [day]: { ...prev[day], [slot]: { ...prev[day][slot], [field]: value } },
-    }));
+    setDaySlots((prev) => {
+      const currentSlot = prev[day][slot];
+      const updatedSlot = { ...currentSlot, [field]: value };
+      
+      // Auto-show Slot 2 if Slot 1 is filled (both start and end time)
+      if (slot === 'slot1' && updatedSlot.from && updatedSlot.to) {
+        setShowSlot2(prevShow => ({ ...prevShow, [day]: true }));
+      }
+
+      return {
+        ...prev,
+        [day]: { ...prev[day], [slot]: updatedSlot },
+      };
+    });
   };
 
   const handleUpdate = async () => {
@@ -289,15 +301,18 @@ const TimeSlotPanel = ({ availability }) => {
 
     // Validation: Ensure selected days have valid time slots
     const invalidDays = [];
-    const daysToUpdate = allDays.filter(day => selectedDays[day]);
+    const daysToValidate = allDays.filter(day => selectedDays[day]);
 
     // Helper to check if slot is valid
     const isValidSlot = (s) => s.from && s.to && s.from < s.to;
+    // Helper to check if slot is completely empty
+    const isEmptySlot = (s) => !s.from && !s.to;
 
-    for (const day of daysToUpdate) {
+    for (const day of daysToValidate) {
       const dParams = daySlots[day];
       const s1Valid = isValidSlot(dParams.slot1);
-      const s2Valid = !showSlot2[day] || isValidSlot(dParams.slot2);
+      // Slot 2 is valid if it's either fully valid OR completely empty (even if shown)
+      const s2Valid = !showSlot2[day] || isValidSlot(dParams.slot2) || isEmptySlot(dParams.slot2);
 
       if (!s1Valid || !s2Valid) {
         invalidDays.push(day);
@@ -313,9 +328,18 @@ const TimeSlotPanel = ({ availability }) => {
 
     setIsUpdating(true);
     try {
-      const promises = daysToUpdate
-        .map(day => {
-          const slots = [];
+      const initialObj = initialStateStr ? JSON.parse(initialStateStr) : {};
+      const initialSelected = initialObj.selectedDays || {};
+
+      for (const day of allDays) {
+        // Skip if day was unchecked and is still unchecked
+        if (!selectedDays[day] && !initialSelected[day]) {
+          continue;
+        }
+
+        const slots = [];
+        // Only populate slots if day is currently selected
+        if (selectedDays[day]) {
           const dParams = daySlots[day];
 
           if (isValidSlot(dParams.slot1)) {
@@ -324,25 +348,22 @@ const TimeSlotPanel = ({ availability }) => {
           if (showSlot2[day] && isValidSlot(dParams.slot2)) {
             slots.push(dParams.slot2);
           }
+        }
+        // If !selectedDays[day], slots remains [], which clears the day
 
-          // Important: API requires lower case day name
-          return callApi({
-            method: Method.PATCH,
-            endPoint: api.availability,
-            bodyParams: {
-              day: day.toLowerCase(),
-              timeSlots: slots
-            },
-            onSuccess: () => {
-              // Individual success (optional logging)
-            },
-            onError: (err) => {
-              console.error(`Failed to update ${day}`, err);
-            }
-          });
+        // Important: API requires lower case day name
+        await callApi({
+          method: Method.PATCH,
+          endPoint: api.availability,
+          bodyParams: {
+            day: day.toLowerCase(),
+            timeSlots: slots
+          },
+          onError: (err) => {
+            console.error(`Failed to update ${day}`, err);
+          }
         });
-
-      await Promise.all(promises);
+      }
 
       if (window.showToast) {
         window.showToast("Availability updated successfully!", "success");
@@ -355,18 +376,18 @@ const TimeSlotPanel = ({ availability }) => {
     }
   };
 
-return (
+  return (
     <div className="p-4 md:p-6">
       <div className="space-y-6">
         {allDays.map((day) => (
-          <div key={day} className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 border-b border-gray-50 pb-4 md:border-none md:pb-0">
+          <div key={day} className="flex flex-col gap-3 pb-4 md:pb-0">
             <button
               type="button"
               onClick={() => toggleDay(day)}
               className="flex items-center gap-3 min-w-[140px] mb-2 md:mb-0"
             >
               <div
-                className={`w-6 h-6 rounded md:rounded-lg border-2 flex items-center justify-center transition-colors ${selectedDays[day] ? 'bg-teal-700 border-teal-700' : 'border-gray-200 bg-white'
+                className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${selectedDays[day] ? 'bg-teal-700 border-teal-700' : 'border-gray-200 bg-white'
                   }`}
               >
                 {selectedDays[day] ? (
@@ -375,7 +396,7 @@ return (
                   </svg>
                 ) : null}
               </div>
-              <span className="text-base font-semibold text-[#102a43]">{day}</span>
+              <span className="text-base font-bold text-[#102a43]">{day}</span>
             </button>
 
             {selectedDays[day] ? (
@@ -390,7 +411,7 @@ return (
                   }}
                   value={daySlots[day].slot1.from}
                   onChange={(e) => updateTime(day, 'slot1', 'from', e.target.value)}
-                  className="w-[calc(50%-0.5rem)] md:w-[130px] px-4 py-3 rounded-xl border border-gray-100 bg-gray-50 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 placeholder-gray-400"
+                  className="w-[calc(50%-0.5rem)] md:w-[130px] px-4 py-3 rounded-xl bg-[#F8F8F8] text-sm text-gray-600 focus:outline-none placeholder-gray-400"
                 />
                 <input
                   type={daySlots[day].slot1.to ? "time" : "text"}
@@ -401,7 +422,7 @@ return (
                   }}
                   value={daySlots[day].slot1.to}
                   onChange={(e) => updateTime(day, 'slot1', 'to', e.target.value)}
-                  className="w-[calc(50%-0.5rem)] md:w-[130px] px-4 py-3 rounded-xl border border-gray-100 bg-gray-50 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 placeholder-gray-400"
+                  className="w-[calc(50%-0.5rem)] md:w-[130px] px-4 py-3 rounded-xl bg-[#F8F8F8] text-sm text-gray-600 focus:outline-none placeholder-gray-400"
                 />
 
                 {/* Slot 2 (merged into same flow) */}
@@ -416,7 +437,7 @@ return (
                       }}
                       value={daySlots[day].slot2.from}
                       onChange={(e) => updateTime(day, 'slot2', 'from', e.target.value)}
-                      className="w-[calc(50%-0.5rem)] md:w-[130px] px-4 py-3 rounded-xl border border-gray-100 bg-gray-50 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 placeholder-gray-400"
+                      className="w-[calc(50%-0.5rem)] md:w-[130px] px-4 py-3 rounded-xl bg-[#F8F8F8] text-sm text-gray-600 focus:outline-none placeholder-gray-400"
                     />
                     <input
                       type={daySlots[day].slot2.to ? "time" : "text"}
@@ -427,7 +448,7 @@ return (
                       }}
                       value={daySlots[day].slot2.to}
                       onChange={(e) => updateTime(day, 'slot2', 'to', e.target.value)}
-                      className="w-[calc(50%-0.5rem)] md:w-[130px] px-4 py-3 rounded-xl border border-gray-100 bg-gray-50 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500 placeholder-gray-400"
+                      className="w-[calc(50%-0.5rem)] md:w-[130px] px-4 py-3 rounded-xl bg-[#F8F8F8] text-sm text-gray-600 focus:outline-none placeholder-gray-400"
                     />
                   </>
                 ) : null}
@@ -436,7 +457,7 @@ return (
           </div>
         ))}
 
-        <div className="flex justify-start md:justify-end pt-6">
+        <div className="flex justify-end pt-6">
           <button
             type="button"
             onClick={handleUpdate}
