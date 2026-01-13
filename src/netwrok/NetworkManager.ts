@@ -252,6 +252,20 @@ export const callApi = async ({
         }
 
         // 🧩 Case 3: other 401 errors (like no token at all)
+        if (endPoint.includes("auth/signin")) {
+          onError && onError(serverError);
+          const lowerMsgSignin = (serverError?.message || "").toLowerCase();
+          if (
+            lowerMsgSignin.includes("only therapist") ||
+            lowerMsgSignin.includes("role") ||
+            lowerMsgSignin.includes("instructor")
+          ) {
+            showToast("Please sign in with a therapist account.");
+          } else {
+            showToast("Invalid credentials");
+          }
+          return;
+        }
         handleAuthenticationError(
           useAuthStore.getState().logout,
           serverError?.message || "Authentication failed. Please login again."
@@ -319,8 +333,17 @@ export const callApi = async ({
       } else if (axiosError.response) {
         const serverError = axiosError.response.data as ApiResponse;
         onError && onError(serverError);
+        const lowerMsg = String(serverError?.message || "").toLowerCase();
+        const isPermissionError =
+          axiosError.response.status === 403 ||
+          lowerMsg.includes("permission") ||
+          lowerMsg.includes("forbidden") ||
+          lowerMsg.includes("not authorized") ||
+          lowerMsg.includes("not authorised");
         if (!endPoint.includes("auth/logout") && !endPoint.includes("logout")) {
+          if (!isPermissionError) {
             showToast(serverError?.message || "Request failed. Please try again.");
+          }
         }
       } else {
         onError && onError({ message: "Request failed. Please try again." });

@@ -8,6 +8,7 @@ export const api = {
   resetPassword: 'auth/reset-password',
   updatePassword: 'auth/update-password',
   logout: 'auth/logout',
+  therapistDashboard: 'therapist/dashboard',
   appointmentsTherapists: 'appointments/therapists',
   therapistProfile: 'therapist/profile',
   therapistProfileMe: 'therapist/profile/me',

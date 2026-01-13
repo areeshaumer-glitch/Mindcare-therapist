@@ -65,28 +65,42 @@ const Dashboard = () => {
 
   useEffect(() => {
     setIsLoading(true);
-    // Dashboard usually shows generic recent/today stats. 
-    // We can fetch 'pending' appointments to show upcoming ones for today.
-    const params = new URLSearchParams();
-    params.set('status', 'pending');
-
     callApi({
       method: Method.GET,
-      endPoint: `${api.appointmentsMe}?${params.toString()}`,
+      endPoint: api.therapistDashboard,
       onSuccess: (response) => {
         const payload = response?.data ?? response;
-        const list = Array.isArray(payload?.data)
-          ? payload.data
-          : Array.isArray(payload)
-            ? payload
-            : [];
-        setTherapists(list); // Keeping variable name 'therapists' to minimize diff, but it holds appointments
-        setMeta(payload?.meta ?? null);
+        const data = payload?.data ?? payload;
+        const stats = data?.stats || {};
+        const today = data?.today || {};
+        const appointments = Array.isArray(today?.appointments) ? today.appointments : [];
+        const mapped = appointments.map((a) => {
+          const student = a?.student || {};
+          return {
+            id: a?.appointmentId || a?.id,
+            appointmentDate: a?.appointmentDate || today?.date,
+            startTime: a?.startTime,
+            endTime: a?.endTime,
+            status: a?.status,
+            note: a?.note,
+            user: {
+              name: student?.name,
+              email: student?.email,
+              profileImage: student?.avatar,
+            },
+            name: student?.name,
+            profileImage: student?.avatar,
+          };
+        });
+        setTherapists(mapped);
+        setMeta({ totalItems: Number(stats?.totalAppointments || mapped.length) });
+        setStatistics(stats);
         setIsLoading(false);
       },
       onError: (err) => {
         console.error("Dashboard fetch error:", err);
         setTherapists([]);
+        setStatistics({ totalAppointments: 0, completedAppointments: 0, myComments: 0 });
         setIsLoading(false);
       },
     });
@@ -100,25 +114,14 @@ const Dashboard = () => {
     setSelectedAppointment(null);
   };
 
-  // Statistics (using meta for total if available, others hardcoded for now)
+  const [statistics, setStatistics] = useState({ totalAppointments: 0, completedAppointments: 0, myComments: 0 });
   const statisticsData = {
-    totalAppointments: meta?.totalItems || 0,
-    completed: 245, // Placeholder as per original
-    myComments: 1040 // Placeholder as per original
+    totalAppointments: Number(statistics?.totalAppointments || 0),
+    completed: Number(statistics?.completedAppointments || 0),
+    myComments: Number(statistics?.myComments || 0),
   };
 
-  const todayAppointments = useMemo(() => {
-    const today = new Date();
-    return therapists.filter((appointment) => {
-      if (!appointment.appointmentDate) return false;
-      const appDate = new Date(appointment.appointmentDate);
-      return (
-        appDate.getDate() === today.getDate() &&
-        appDate.getMonth() === today.getMonth() &&
-        appDate.getFullYear() === today.getFullYear()
-      );
-    });
-  }, [therapists]);
+  const todayAppointments = therapists;
 
   if (selectedAppointment) {
     const user = selectedAppointment.user || {};

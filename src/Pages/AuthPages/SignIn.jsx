@@ -59,6 +59,13 @@ export default function SignIn() {
               if (response?.user) {
                 setUserData(response.user);
               }
+              const role = String(response?.user?.role || '').toLowerCase();
+              if (role.includes('instructor')) {
+                window.showToast?.('Please sign in with a therapist account.', 'error');
+                logout();
+                navigate('/', { replace: true });
+                return;
+              }
               callApi({
                 method: Method.GET,
                 endPoint: api.therapistProfileMe,
