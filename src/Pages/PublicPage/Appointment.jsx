@@ -71,6 +71,11 @@ const Appointment = () => {
     };
   }, [isModalOpen]);
 
+  const getAppointmentId = (appointment) => {
+    if (!appointment) return null;
+    return appointment._id || appointment.appointmentId || appointment.id || null;
+  };
+
   const endPoint = useMemo(() => {
     const params = new URLSearchParams();
     params.set('page', String(page));
@@ -89,16 +94,13 @@ const Appointment = () => {
     return `${api.appointmentsMe}?${query}`;
   }, [limit, page, activeTab]);
 
-  useEffect(() => {
-    let isActive = true;
-    setIsLoading(true);
-    setAppointments([]);
-
-    void callApi({
+  const fetchAppointments = (isBackground = false) => {
+    if (!isBackground) setIsLoading(true);
+    
+    callApi({
       method: Method.GET,
       endPoint,
       onSuccess: (response) => {
-        if (!isActive) return;
         const payload = response?.data ?? response;
         const list = Array.isArray(payload?.data)
           ? payload.data
@@ -107,14 +109,84 @@ const Appointment = () => {
             : [];
         setAppointments(list);
         setIsLoading(false);
+
+        // Update selected appointment if it exists to ensure fresh data (like feedback)
+         setSelectedAppointment(prev => {
+             if (!prev) return null;
+             const id = getAppointmentId(prev);
+             const updated = list.find(a => getAppointmentId(a) === id);
+             if (updated) {
+                 console.log("Feedback: Updated appointment data:", updated);
+                 console.log("Feedback: myFeedback field:", updated.myFeedback);
+             }
+             return updated || prev;
+         });
       },
       onError: (err) => {
-        if (!isActive) return;
-        setAppointments([]);
-        setIsLoading(false);
+        if (!isBackground) {
+            setAppointments([]);
+            setIsLoading(false);
+        }
       },
     });
+  };
 
+  const fetchFeedbackDetails = (appointmentId) => {
+    console.log("Feedback: Fetching details for appointment:", appointmentId);
+    // Try fetching from feedback/me
+    callApi({
+        method: Method.GET,
+        endPoint: `${api.feedbackMe}?limit=100`, 
+        onSuccess: (res) => {
+            const payload = res?.data ?? res;
+            const list = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+            
+            console.log("Feedback: Fetched feedback list:", list.length);
+            
+            const match = list.find(f => 
+                (f.appointmentId === appointmentId) || 
+                (f.appointment?._id === appointmentId) ||
+                (f.appointment === appointmentId)
+            );
+
+            if (match) {
+                console.log("Feedback: Found matching feedback:", match);
+                const feedbackData = {
+                    comment: match.comment || match.text || match.description,
+                    rating: match.rating,
+                    type: match.type || 'session'
+                };
+
+                setSelectedAppointment(prev => {
+                    if (!prev) return null;
+                    if (getAppointmentId(prev) !== appointmentId) return prev;
+                    return {
+                        ...prev,
+                        myFeedback: feedbackData
+                    };
+                });
+                
+                // Update main list too
+                setAppointments(prev => 
+                    prev.map(app => 
+                        getAppointmentId(app) === appointmentId 
+                        ? { ...app, myFeedback: feedbackData } 
+                        : app
+                    )
+                );
+            } else {
+                console.log("Feedback: No matching feedback found in list");
+            }
+        },
+        onError: (err) => {
+            console.warn("Feedback: Failed to fetch feedback details", err);
+        }
+    });
+  };
+
+  useEffect(() => {
+    let isActive = true;
+    fetchAppointments();
     return () => {
       isActive = false;
     };
@@ -181,11 +253,6 @@ const Appointment = () => {
 
   const handleBackClick = () => {
     setSelectedAppointment(null);
-  };
-
-  const getAppointmentId = (appointment) => {
-    if (!appointment) return null;
-    return appointment._id || appointment.appointmentId || appointment.id || null;
   };
 
   const handleMarkAsComplete = () => {
@@ -262,6 +329,23 @@ const Appointment = () => {
   };
 
 
+  // Automatically try to fetch feedback if it's missing but status is completed
+  useEffect(() => {
+    if (selectedAppointment) {
+      const statusValue = String(selectedAppointment.status || '').toLowerCase();
+      // Check for myFeedback in various possible locations
+      const myFeedbackData = selectedAppointment.myFeedback || selectedAppointment.feedback;
+      const hasMyFeedback = !!(myFeedbackData && (myFeedbackData.comment || myFeedbackData.text || myFeedbackData.rating));
+
+      if (statusValue === 'completed' && !hasMyFeedback) {
+        const id = getAppointmentId(selectedAppointment);
+        if (id) {
+          fetchFeedbackDetails(id);
+        }
+      }
+    }
+  }, [selectedAppointment]);
+
   if (selectedAppointment) {
     const user = selectedAppointment.user || {};
     const profile = user.profile || {};
@@ -298,7 +382,11 @@ const Appointment = () => {
       }
     }
     const statusValue = String(selectedAppointment.status || '').toLowerCase();
-    const hasMyFeedback = !!(selectedAppointment?.myFeedback && (selectedAppointment.myFeedback.comment || selectedAppointment.myFeedback.text));
+    
+    // Check for myFeedback in various possible locations
+    const myFeedbackData = selectedAppointment.myFeedback || selectedAppointment.feedback;
+    const hasMyFeedback = !!(myFeedbackData && (myFeedbackData.comment || myFeedbackData.text || myFeedbackData.rating));
+    
     const canMarkComplete = statusValue === 'pending' && isUpcoming;
     const canGiveFeedback = statusValue === 'completed' && !hasMyFeedback;
 
@@ -350,7 +438,7 @@ const Appointment = () => {
                 <div className="mt-6">
                   <h2 className="font-nunito font-bold text-[18px] leading-[24px] tracking-[0px] text-[#121212] mb-2">My feedback</h2>
                   <p className="font-nunito font-normal text-[16px] leading-[100%] tracking-[0px] text-[#121212]">
-                    {selectedAppointment?.myFeedback?.comment || selectedAppointment?.myFeedback?.text || '—'}
+                    {myFeedbackData?.comment || myFeedbackData?.text || '—'}
                   </p>
                 </div>
               )}
@@ -508,19 +596,51 @@ const Appointment = () => {
                           if (feedbackRef?.current) {
                             feedbackRef.current.value = '';
                           }
+                          
+                          const newFeedback = {
+                            comment: value,
+                            rating: rating,
+                            type: 'session'
+                          };
+
                           setSelectedAppointment((prev) => {
                             if (!prev) return prev;
-                            return {
+                            // Update local state immediately for instant feedback
+                            const updated = {
                               ...prev,
-                              myFeedback: {
-                                comment: value,
-                                rating: rating,
-                              },
+                              myFeedback: newFeedback,
                             };
+                            return updated;
                           });
+                          
+                          setAppointments((prev) => 
+                            prev.map(app => 
+                              getAppointmentId(app) === appointmentId 
+                                ? { ...app, myFeedback: newFeedback } 
+                                : app
+                            )
+                          );
                         },
                         onError: (err) => {
                           console.error("Feedback: API Error", err);
+                          
+                          if (err?.message && (
+                            err.message.toLowerCase().includes("already submitted") ||
+                            err.message.toLowerCase().includes("duplicate")
+                          )) {
+                              console.log("Feedback: Feedback already exists, refreshing...");
+                              window.showToast?.('Feedback already exists. Updating...', 'info');
+                              setIsModalOpen(false);
+                              
+                              // Try to fetch the specific feedback details
+                              if (appointmentId) {
+                                  fetchFeedbackDetails(appointmentId);
+                              } else {
+                                  fetchAppointments(true);
+                              }
+                              return;
+                          }
+
                           window.showToast?.('Unable to submit feedback. Please try again.', 'error');
                         },
                       });
